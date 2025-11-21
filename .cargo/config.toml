@@ -1,0 +1,10 @@
+[alias]
+cl = "clippy"
+semver-head = "semver-checks check-release --baseline-rev HEAD~1"
+set-ver = "set-version --bump"
+update-deps = "upgrade"
+depall = "depgraph --all-deps --dedup-transitive-deps"
+
+
+[build]
+rustflags = ["-C", "target-cpu=native"]
