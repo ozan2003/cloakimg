@@ -16,7 +16,7 @@
 //! Returns [`StegoError`] when embedding text fails.
 use image::RgbaImage;
 
-use super::{HEADER_BITS, HEADER_MAX_VALUE, StegoError, channel_capacity_bits};
+use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 
 /// Embeds UTF-8 text inside the RGB least-significant bits of the given RGBA
 /// image.
@@ -40,7 +40,7 @@ pub fn embed_text(
 ) -> Result<(), StegoError>
 {
     let payload = message.as_bytes();
-    if payload.len() > HEADER_MAX_VALUE
+    if payload.len() > PAYLOAD_MAX_LEN
     {
         return Err(StegoError::MessageExceedsHeaderLimit {
             requested_bytes: payload.len(),
@@ -79,14 +79,19 @@ pub fn embed_text(
     Ok(())
 }
 
-/// Iterator over the bits of the payload
+/// Iterator over the bits of the payload, encoding the message length first
 #[derive(Default)]
 struct PayloadBits<'message>
 {
+    /// The message to embed
     message: &'message [u8],
-    length: usize,
-    length_bit_index: usize,
-    byte_index: usize,
+    /// The length of the message
+    msg_length: usize,
+    /// The index of the next bit in the length
+    msg_length_bit_index: usize,
+    /// The index of the next byte across the message
+    msg_byte_index: usize,
+    /// The index of the next bit in the current byte
     bit_index: usize,
 }
 
@@ -96,38 +101,40 @@ impl<'message> PayloadBits<'message>
     {
         Self {
             message,
-            length: message.len(),
+            msg_length: message.len(),
             ..Default::default()
         }
     }
 
     fn next_bit(&mut self) -> Option<u8>
     {
-        if self.length_bit_index < HEADER_BITS
+        // encode the length
+        if self.msg_length_bit_index < HEADER_BITS
         {
-            let shift = HEADER_BITS - 1 - self.length_bit_index;
-            let bit = ((self.length >> shift) & 1)
+            let shift = HEADER_BITS - 1 - self.msg_length_bit_index;
+            let bit = ((self.msg_length >> shift) & 1)
                 .try_into()
                 .ok()?;
 
-            self.length_bit_index += 1;
+            self.msg_length_bit_index += 1;
             return Some(bit);
         }
 
-        if self.byte_index >= self.message.len()
+        if self.msg_byte_index >= self.message.len()
         {
             return None;
         }
 
-        let byte = self.message[self.byte_index];
+        let byte = self.message[self.msg_byte_index];
         let shift = 7 - self.bit_index;
         let bit = (byte >> shift) & 1;
 
         self.bit_index += 1;
         if self.bit_index == 8
         {
+            // reset the bit index and move to the next byte
             self.bit_index = 0;
-            self.byte_index += 1;
+            self.msg_byte_index += 1;
         }
 
         Some(bit)
