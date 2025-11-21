@@ -44,7 +44,7 @@ pub enum AppError
     Stego(#[from] StegoError),
 
     /// The message is missing
-    #[error("provide text with --text or --text-file")]
+    #[error("provide a message")]
     MissingMessage,
 }
 
