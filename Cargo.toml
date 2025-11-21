@@ -4,5 +4,39 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clap = "4.5.53"
+clap = { version = "4.5.53", features = ["derive"] }
 image = { version = "0.25.9", default-features = false, features = ["png"] }
+thiserror = "1.0"
+
+[lints.clippy]
+correctness = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -2 }
+pedantic = { level = "deny", priority = -3 }
+style = { level = "warn", priority = -4 }
+complexity = { level = "warn", priority = -5 }
+suspicious = { level = "warn", priority = -6 }
+
+redundant-clone = { level = "warn", priority = -4 }
+derive-partial-eq-without-eq = { level = "warn", priority = -5 }
+unnecessary-struct-initialization = { level = "warn", priority = -6 }
+redundant-pub-crate = { level = "warn", priority = -7 }
+missing-const-for-fn = { level = "warn", priority = -8 }
+undocumented_unsafe_blocks = { level = "deny", priority = -8 }
+branches_sharing_code = { level = "warn", priority = -9 }
+uninlined-format-args = "allow"
+
+unchecked_duration_subtraction = { level = "deny", priority = 0 }
+
+# Misc
+multiple_unsafe_ops_per_block = { level = "warn", priority = 0 }
+unwrap_used = { level = "warn", priority = 0 }                   # Prefer ? or expect
+lossy_float_literal = { level = "warn", priority = 0 }
+float_cmp = { level = "warn", priority = 0 }
+float_cmp_const = { level = "warn", priority = 0 }
+while_float = { level = "warn", priority = 0 }
+string_slice = { level = "warn", priority = 0 }
+get_unwrap = { level = "warn", priority = 0 }
+mem_forget = { level = "warn", priority = 0 }
+use_self = { level = "warn", priority = 0 }
+useless_let_if_seq = { level = "warn", priority = 0 }
+str_to_string = { level = "warn", priority = 0 }
