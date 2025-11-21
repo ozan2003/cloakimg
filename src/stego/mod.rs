@@ -26,9 +26,10 @@ pub use encode::embed_text;
 /// Bit length of the payload length header
 const HEADER_BITS: usize = 32;
 /// Maximum value representable by the payload length header
-const HEADER_MAX_VALUE: usize = (1_usize << HEADER_BITS) - 1;
+const PAYLOAD_MAX_LEN: usize = (1_usize << HEADER_BITS) - 1;
 
 /// Maximum reasonable message size in bytes
+// Messages exceeding this size are considered unreasonable
 const MAX_REASONABLE_MESSAGE_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
 
 /// Errors that can be emitted while embedding or extracting text
