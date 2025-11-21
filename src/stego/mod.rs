@@ -24,7 +24,7 @@ pub use decode::extract_text;
 pub use encode::embed_text;
 
 /// Bit length of the payload length header
-const HEADER_BITS: usize = 32;
+const HEADER_BITS: u8 = 32;
 /// Maximum value representable by the payload length header
 const PAYLOAD_MAX_LEN: usize = (1_usize << HEADER_BITS) - 1;
 
@@ -98,7 +98,7 @@ pub enum StegoError
 pub fn max_message_size(image: &RgbaImage) -> usize
 {
     let available_bits = channel_capacity_bits(image);
-    (available_bits.saturating_sub(HEADER_BITS)) / 8
+    (available_bits.saturating_sub(HEADER_BITS.into())) / 8
 }
 
 /// Returns the number of bits available in the image for the payload

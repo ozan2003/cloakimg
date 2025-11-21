@@ -51,9 +51,9 @@ pub fn embed_text(
     // HEADER_BITS is reserved for the payload length, the rest belongs to the
     // payload
     let payload_available_bytes =
-        (total_available_bits.saturating_sub(HEADER_BITS)) / 8;
+        (total_available_bits.saturating_sub(HEADER_BITS.into())) / 8;
     // the total number of bits required for the length and the payload
-    let total_required_bits = HEADER_BITS + payload.len() * 8;
+    let total_required_bits = usize::from(HEADER_BITS) + payload.len() * 8;
 
     if total_required_bits > total_available_bits
     {
@@ -88,11 +88,11 @@ struct PayloadBits<'message>
     /// The length of the message
     msg_length: usize,
     /// The index of the next bit in the length
-    msg_length_bit_index: usize,
+    msg_length_bit_index: u8,
     /// The index of the next byte across the message
     msg_byte_index: usize,
     /// The index of the next bit in the current byte
-    bit_index: usize,
+    bit_index: u8,
 }
 
 impl<'message> PayloadBits<'message>

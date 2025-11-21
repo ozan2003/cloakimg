@@ -36,7 +36,7 @@ use super::{
 pub fn extract_text(image: &RgbaImage) -> Result<String, StegoError>
 {
     let available_bits = channel_capacity_bits(image);
-    if available_bits < HEADER_BITS
+    if available_bits < usize::from(HEADER_BITS)
     {
         return Err(StegoError::MissingHeader { available_bits });
     }
@@ -69,7 +69,7 @@ pub fn extract_text(image: &RgbaImage) -> Result<String, StegoError>
     }
 
     // Our data starts after the header, so we need to subtract the header
-    let remaining_capacity_bits = available_bits - HEADER_BITS;
+    let remaining_capacity_bits = available_bits - usize::from(HEADER_BITS);
     let remaining_capacity_bytes = remaining_capacity_bits / 8;
 
     if declared_bytes > remaining_capacity_bytes
