@@ -1,3 +1,19 @@
+//! Steganography routines for embedding and extracting text from PNG images.
+//!
+//! Provides functions for embedding and extracting text from PNG images using
+//! RGB LSB steganography.
+//!
+//! # Format
+//!
+//! - First 32 LSBs: message length as big-endian u32
+//! - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
+//!   0)
+//! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
+//!   ignored)
+//!
+//! # Errors
+//!
+//! Returns [`StegoError`] when embedding or extracting text fails.
 use image::RgbaImage;
 use thiserror::Error;
 

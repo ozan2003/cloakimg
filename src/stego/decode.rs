@@ -1,3 +1,10 @@
+//! Steganography routines for extracting text from PNG images.
+//!
+//! Implements the logic for extracting text from a PNG image.
+//!
+//! # Errors
+//!
+//! Returns [`StegoError`] when extracting text fails.
 use image::RgbaImage;
 
 use super::{

@@ -1,3 +1,19 @@
+//! Steganography routines for embedding text into PNG images.
+//!
+//! Provides a function for embedding text into PNG images using RGB LSB
+//! steganography.
+//!
+//! # Format
+//!
+//! - First 32 LSBs: message length as big-endian u32
+//! - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
+//!   0)
+//! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
+//!   ignored)
+//!
+//! # Errors
+//!
+//! Returns [`StegoError`] when embedding text fails.
 use image::RgbaImage;
 
 use super::{HEADER_BITS, HEADER_MAX_VALUE, StegoError, channel_capacity_bits};
