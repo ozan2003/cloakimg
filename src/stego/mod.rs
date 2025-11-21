@@ -171,11 +171,16 @@ mod tests
     {
         let mut image = RgbaImage::from_pixel(32, 32, Rgba([0, 0, 0, 255]));
         // 32*32*3 = 3072 bits - 32 header = 3040 bits = 380 bytes
-        let message = "a".repeat(380);
+        let max_len = max_message_size(&image);
+        assert_eq!(max_len, 380);
+
+        let message = "a".repeat(max_len);
         embed_text(&mut image, &message)
             .expect("failed to embed max capacity text");
+
         let decoded =
             extract_text(&image).expect("failed to extract max capacity text");
+
         assert_eq!(message, decoded);
     }
 
