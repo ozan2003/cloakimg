@@ -1,6 +1,6 @@
 use std::process;
 
-use png_steganography::cli;
+use cloakpng::cli;
 
 fn main()
 {

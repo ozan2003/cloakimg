@@ -129,6 +129,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1d728cc89cf3aee9ff92b05e62b19ee65a02b5702cff7d5a377e32c6ae29d8d"
 
 [[package]]
+name = "cloakpng"
+version = "0.4.1"
+dependencies = [
+ "clap",
+ "image",
+ "thiserror",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -233,15 +242,6 @@ dependencies = [
  "fdeflate",
  "flate2",
  "miniz_oxide",
-]
-
-[[package]]
-name = "png_steganography"
-version = "0.4.1"
-dependencies = [
- "clap",
- "image",
- "thiserror",
 ]
 
 [[package]]
