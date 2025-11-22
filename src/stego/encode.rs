@@ -67,8 +67,8 @@ pub fn embed_text(
         .pixels_mut()
         // ignore alpha channel
         .flat_map(|pixel| pixel.0[..3].iter_mut());
-    let bits = PayloadBits::new(payload);
 
+    let bits = PayloadBits::new(payload);
     for (channel, bit) in channels.zip(bits)
     {
         // set the least significant bit of the channel to the bit of the
