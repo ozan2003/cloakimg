@@ -74,8 +74,10 @@ pub fn extract_text(image: &RgbaImage) -> Result<String, StegoError>
     }
 
     // Our data starts after the header, so we need to subtract the header
-    let remaining_capacity_bits = available_bits - usize::from(HEADER_BITS);
-    let remaining_capacity_bytes = remaining_capacity_bits / 8;
+    let remaining_capacity_bytes = {
+        let remaining_capacity_bits = available_bits - usize::from(HEADER_BITS);
+        remaining_capacity_bits / 8
+    };
 
     if declared_bytes > remaining_capacity_bytes
     {
