@@ -112,6 +112,7 @@ fn channel_capacity_bits(image: &RgbaImage) -> usize
 mod tests
 {
     use image::Rgba;
+    use rand::fill;
 
     use super::*;
 
@@ -130,12 +131,8 @@ mod tests
     fn round_trip_with_random_pixels()
     {
         let mut rng_data = vec![0u8; 64 * 64 * 4];
-
-        #[allow(clippy::cast_possible_truncation)]
-        for (i, byte) in rng_data.iter_mut().enumerate()
-        {
-            *byte = ((i.wrapping_mul(123) ^ 87) % 256) as u8;
-        }
+        fill(rng_data.as_mut_slice());
+       
         let mut image = RgbaImage::from_raw(64, 64, rng_data)
             .expect("failed to create image from raw data");
         let message = "Test with random pixel data!";
