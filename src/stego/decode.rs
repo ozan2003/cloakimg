@@ -48,20 +48,25 @@ pub fn extract_text(image: &RgbaImage) -> Result<String, StegoError>
         // just the lsb
         .map(|channel| channel & 1);
 
-    // Construct the length bits from the first HEADER_BITS bits
-    let mut length_bits: u32 = 0;
-    for _ in 0..HEADER_BITS
-    {
-        let bit = bit_iter
-            .next()
-            .ok_or(StegoError::MissingHeader { available_bits })?;
+    let declared_bytes = {
+        // Construct the length bits from the first HEADER_BITS bits
+        let mut length_bits: u32 = 0;
+        for _ in 0..HEADER_BITS
+        {
+            let bit = bit_iter
+                .next()
+                .ok_or(StegoError::MissingHeader { available_bits })?;
 
-        length_bits = (length_bits << 1) | u32::from(bit);
-    }
+            length_bits = (length_bits << 1) | u32::from(bit);
+        }
 
-    let declared_bytes: usize = length_bits
-        .try_into()
-        .expect("length_bits is too large to fit in usize");
+        length_bits.try_into().unwrap_or_else(|_| {
+            panic!(
+                "length_bits is too large to fit in {}",
+                std::any::type_name_of_val(&length_bits)
+            )
+        })
+    };
 
     if declared_bytes > MAX_REASONABLE_MESSAGE_SIZE
     {
