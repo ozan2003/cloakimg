@@ -130,10 +130,13 @@ mod tests
     #[test]
     fn round_trip_with_random_pixels()
     {
-        let mut rng_data = vec![0u8; 64 * 64 * 4];
+        const WIDTH: u32 = 64;
+        const HEIGHT: u32 = 64;
+
+        let mut rng_data = vec![0u8; WIDTH as usize * HEIGHT as usize * 4];
         fill(rng_data.as_mut_slice());
-       
-        let mut image = RgbaImage::from_raw(64, 64, rng_data)
+
+        let mut image = RgbaImage::from_raw(WIDTH, HEIGHT, rng_data)
             .expect("failed to create image from raw data");
         let message = "Test with random pixel data!";
 
