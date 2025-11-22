@@ -3,7 +3,7 @@
 //! Provides functions for embedding and extracting text from PNG images using
 //! RGB LSB steganography.
 //!
-//! # Format
+//! # Encoding Format
 //!
 //! - First 32 LSBs: message length as big-endian u32
 //! - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
