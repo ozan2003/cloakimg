@@ -53,6 +53,19 @@ pub enum AppError
     /// The format is unsupported
     #[error("unsupported image format")]
     UnsupportedFormat,
+
+    /// Input and output formats are different
+    #[error(
+        "input and output formats are different, both must be \
+         {input_extension}"
+    )]
+    DifferentFormats
+    {
+        /// Extension detected on the input file
+        input_extension: Box<str>,
+        /// Extension detected on the output file
+        output_extension: Box<str>,
+    },
 }
 
 /// The main CLI parser
@@ -108,6 +121,15 @@ struct DecodingArgs
     output_text: Option<Box<Path>>,
 }
 
+/// Normalizes the extension of a path to lowercase.
+fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
+{
+    path.as_ref()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(str::to_ascii_lowercase)
+}
+
 /// Handles the encoding of a message into an image.
 ///
 /// # Errors
@@ -115,6 +137,23 @@ struct DecodingArgs
 /// Returns [`AppError`] when reading or writing files, or encoding the image.
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 {
+    let input_ext = normalized_extension(&args.input);
+    let output_ext = normalized_extension(&args.output);
+
+    if input_ext != output_ext
+    {
+        return Err(AppError::DifferentFormats {
+            input_extension: input_ext
+                .as_deref()
+                .unwrap_or("<unknown>")
+                .into(),
+            output_extension: output_ext
+                .as_deref()
+                .unwrap_or("<unknown>")
+                .into(),
+        });
+    }
+
     let mut image = load_image(&args.input)?;
     let message = resolve_message(args)?;
 
@@ -123,12 +162,6 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 
     // Output the modified image to the specified path
     let mut file = fs::File::create(&args.output)?;
-
-    let input_ext = args
-        .input
-        .extension()
-        .and_then(|s| s.to_str())
-        .map(str::to_ascii_lowercase);
 
     match input_ext.as_deref()
     {
@@ -238,5 +271,39 @@ fn resolve_message(args: &mut EncodingArgs) -> Result<String, AppError>
         (None, Some(path)) => Ok(fs::read_to_string(path)?),
         // this shouldn't happen because of the mutually exclusive group
         (None, None) | (Some(_), Some(_)) => Err(AppError::MissingMessage),
+    }
+}
+
+#[allow(
+    unused_imports,
+    reason = "when removed, it wont compile; most likely false positive"
+)]
+mod tests
+{
+    use std::path::Path;
+
+    use super::*;
+
+    #[test]
+    fn should_reject_different_input_formats()
+    {
+        let mut args = EncodingArgs {
+            input: Path::new("input.png").into(),
+            output: Path::new("output.bmp").into(),
+            text: Some("payload".into()),
+            text_file: None,
+        };
+
+        let error = handle_encode(&mut args)
+            .expect_err("should reject different input formats");
+
+        assert!(matches!(
+            error,
+            AppError::DifferentFormats {
+                input_extension,
+                output_extension
+            } if input_extension.as_ref() == "png"
+                && output_extension.as_ref() == "bmp"
+        ));
     }
 }
