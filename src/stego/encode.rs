@@ -1,6 +1,6 @@
-//! Steganography routines for embedding text into PNG images.
+//! Steganography routines for embedding text into images.
 //!
-//! Provides a function for embedding text into PNG images using RGB LSB
+//! Provides a function for embedding text into images using RGB LSB
 //! steganography.
 //!
 //! # Format
@@ -14,11 +14,11 @@
 //! # Errors
 //!
 //! Returns [`StegoError`] when embedding text fails.
-use image::RgbaImage;
+use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 
-/// Embeds UTF-8 text inside the RGB least-significant bits of the given RGBA
+/// Embeds UTF-8 text inside the RGB least-significant bits of the given RGB
 /// image.
 ///
 /// # Format
@@ -34,10 +34,8 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 /// Returns [`StegoError::MessageExceedsHeaderLimit`] when the payload cannot
 /// fit in the 32-bit length header or [`StegoError::MessageTooLarge`] when the
 /// host image lacks sufficient RGB channels.
-pub fn embed_text(
-    image: &mut RgbaImage,
-    message: &str,
-) -> Result<(), StegoError>
+pub fn embed_text(image: &mut RgbImage, message: &str)
+-> Result<(), StegoError>
 {
     let payload = message.as_bytes();
     if payload.len() > PAYLOAD_MAX_LEN
@@ -65,8 +63,7 @@ pub fn embed_text(
 
     let channels = image
         .pixels_mut()
-        // ignore alpha channel
-        .flat_map(|pixel| pixel.0[..3].iter_mut());
+        .flat_map(Pixel::channels_mut);
 
     let bits = PayloadBits::new(payload);
     for (channel, bit) in channels.zip(bits)

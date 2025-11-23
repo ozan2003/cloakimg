@@ -1,11 +1,11 @@
-//! Steganography routines for extracting text from PNG images.
+//! Steganography routines for extracting text from images.
 //!
-//! Implements the logic for extracting text from a PNG image.
+//! Implements the logic for extracting text from an image.
 //!
 //! # Errors
 //!
 //! Returns [`StegoError`] when extracting text fails.
-use image::RgbaImage;
+use image::RgbImage;
 
 use super::{
     HEADER_BITS, MAX_REASONABLE_MESSAGE_SIZE, StegoError, channel_capacity_bits,
@@ -33,7 +33,7 @@ use super::{
 /// # Panics
 ///
 /// Panics if the length bits are too large to fit in a usize.
-pub fn extract_text(image: &RgbaImage) -> Result<String, StegoError>
+pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
 {
     let available_bits = channel_capacity_bits(image);
     if available_bits < usize::from(HEADER_BITS)

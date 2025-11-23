@@ -5,8 +5,11 @@ use std::fs;
 use std::path::Path;
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
+use image::codecs::bmp::BmpEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
-use image::{ExtendedColorType, ImageEncoder, RgbaImage};
+use image::codecs::pnm::{PnmEncoder, PnmSubtype, SampleEncoding};
+use image::codecs::tiff::TiffEncoder;
+use image::{ExtendedColorType, ImageEncoder, RgbImage};
 use thiserror::Error;
 
 use crate::stego::{StegoError, embed_text, extract_text};
@@ -46,6 +49,10 @@ pub enum AppError
     /// The message is missing
     #[error("provide a message")]
     MissingMessage,
+
+    /// The format is unsupported
+    #[error("unsupported image format")]
+    UnsupportedFormat,
 }
 
 /// The main CLI parser
@@ -53,7 +60,7 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode text with RGB LSB steganography for PNG files"
+    about = "Encode and decode text with RGB LSB steganography for  files"
 )]
 struct Cli
 {
@@ -78,9 +85,9 @@ enum Command
 ))]
 struct EncodingArgs
 {
-    /// PNG image that will receive the hidden text.
+    /// Image that will receive the hidden text.
     input: Box<Path>,
-    /// Destination path for the modified PNG image.
+    /// Destination path for the modified image.
     output: Box<Path>,
     /// Text to embed. Mutually exclusive with --text-file.
     #[arg(short = 'i', long = "input", value_name = "TEXT")]
@@ -94,52 +101,102 @@ struct EncodingArgs
 #[derive(Args)]
 struct DecodingArgs
 {
-    /// PNG image that contains hidden text.
+    /// Image that contains hidden text.
     input: Box<Path>,
     /// Optional file to write the decoded text. Prints to stdout when omitted.
     #[arg(long = "output", short = 'o', value_name = "PATH")]
     output_text: Option<Box<Path>>,
 }
 
-/// Handles the encoding of a message into a PNG image.
+/// Handles the encoding of a message into an image.
 ///
 /// # Errors
 ///
 /// Returns [`AppError`] when reading or writing files, or encoding the image.
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 {
-    let mut image = load_png(&args.input)?;
+    let mut image = load_image(&args.input)?;
     let message = resolve_message(args)?;
 
     // Embedding the message happens here
     embed_text(&mut image, &message)?;
 
-    // Output the modified image to the specified path with
-    // compression and filtering
-    let file = fs::File::create(&args.output)?;
-    let encoder = PngEncoder::new_with_quality(
-        file,
-        CompressionType::Default,
-        FilterType::Adaptive,
-    );
-    encoder.write_image(
-        image.as_raw(),
-        image.width(),
-        image.height(),
-        ExtendedColorType::Rgba8,
-    )?;
+    // Output the modified image to the specified path
+    let mut file = fs::File::create(&args.output)?;
+
+    let input_ext = args
+        .input
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(str::to_ascii_lowercase);
+
+    match input_ext.as_deref()
+    {
+        Some("png") =>
+        {
+            let encoder = PngEncoder::new_with_quality(
+                &mut file,
+                CompressionType::Default,
+                FilterType::Adaptive,
+            );
+            encoder.write_image(
+                image.as_raw(),
+                image.width(),
+                image.height(),
+                ExtendedColorType::Rgb8,
+            )?;
+        },
+
+        Some("bmp") =>
+        {
+            let mut encoder = BmpEncoder::new(&mut file);
+            encoder.encode(
+                image.as_raw(),
+                image.width(),
+                image.height(),
+                ExtendedColorType::Rgb8,
+            )?;
+        },
+
+        Some("tiff") =>
+        {
+            let encoder = TiffEncoder::new(&mut file);
+            encoder.write_image(
+                image.as_raw(),
+                image.width(),
+                image.height(),
+                ExtendedColorType::Rgb8,
+            )?;
+        },
+
+        Some("ppm") =>
+        {
+            let mut encoder = PnmEncoder::with_subtype(
+                PnmEncoder::new(&mut file),
+                PnmSubtype::Pixmap(SampleEncoding::Binary),
+            );
+            encoder.encode(
+                image.as_raw().as_slice(),
+                image.width(),
+                image.height(),
+                ExtendedColorType::Rgb8,
+            )?;
+        },
+
+        _ => return Err(AppError::UnsupportedFormat),
+    }
 
     Ok(())
 }
 
-/// Handles the decoding of a message from a PNG image.
+/// Handles the decoding of a message from an image.
 ///
 /// # Errors
 ///
 /// Returns [`AppError`] when reading or writing files, or decoding the image.
 fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 {
-    let image = load_png(&args.input)?;
+    let image = load_image(&args.input)?;
     // Extracting the message happens here
     let message = extract_text(&image)?;
 
@@ -156,14 +213,14 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     Ok(())
 }
 
-/// Loads a PNG image from the specified path and converts it to an RGBA image.
+/// Loads an image from the specified path and converts it to an RGB buffer.
 ///
 /// # Errors
 ///
 /// Returns [`AppError`] when reading the file, or converting the image.
-fn load_png<P: AsRef<Path>>(path: P) -> Result<RgbaImage, AppError>
+fn load_image<P: AsRef<Path>>(path: P) -> Result<RgbImage, AppError>
 {
-    Ok(image::open(path.as_ref())?.into_rgba8())
+    Ok(image::open(path.as_ref())?.into_rgb8())
 }
 
 /// Resolves the message to embed from the command line arguments.

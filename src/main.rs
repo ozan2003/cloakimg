@@ -1,6 +1,6 @@
 use std::process;
 
-use cloakpng::cli;
+use cloakimg::cli;
 
 fn main()
 {
