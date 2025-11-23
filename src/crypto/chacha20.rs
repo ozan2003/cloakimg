@@ -53,7 +53,7 @@ impl ChaCha20
         // The next eight words (4-11) are taken from the 256-bit key by
         // reading the bytes in little-endian order, in 4-byte chunks.
         load_words(&mut base_state[4..=11], key);
-        //Words 13-15 are a nonce, which should not be repeated for the same
+        // Words 13-15 are a nonce, which should not be repeated for the same
         // key. The 13th word is the first 32 bits of the input nonce taken
         // as a little-endian integer, while the 15th word is the last 32
         // bits.
