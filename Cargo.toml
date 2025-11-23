@@ -1,19 +1,27 @@
 [package]
 name = "cloakimg"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 license-file = "LICENSE"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
-image = { version = "0.25.9", default-features = false, features = ["png", "bmp", "tiff", "pnm"] }
+image = { version = "0.25.9", default-features = false, features = [
+    "png",
+    "bmp",
+    "tiff",
+    "pnm",
+] }
 thiserror = "2.0.17"
 base64 = "0.22.1"
 hex = "0.4.3"
+zeroize = { version = "1.8.2", features = ["zeroize_derive"] }
 
 [dev-dependencies]
-rand = {version = "0.9.2", default-features = false, features = ["thread_rng"]}
 tempfile = "3.23.0"
+rand = { version = "0.9.2", default-features = false, features = [
+    "thread_rng",
+] }
 
 [lints.clippy]
 correctness = { level = "warn", priority = -1 }

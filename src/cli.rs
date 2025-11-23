@@ -13,6 +13,7 @@ use image::codecs::pnm::{PnmEncoder, PnmSubtype, SampleEncoding};
 use image::codecs::tiff::TiffEncoder;
 use image::{ExtendedColorType, ImageEncoder, RgbImage};
 use thiserror::Error;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::crypto::{ChaCha20, CryptoError, KEY_SIZE, NONCE_SIZE};
 use crate::stego::{StegoError, embed_text, extract_text};
@@ -153,7 +154,23 @@ struct EncryptionArgs
     counter: u32,
 }
 
-#[derive(Clone, Debug)]
+impl EncryptionArgs
+{
+    fn config(&self) -> Result<EncryptionConfig, CryptoError>
+    {
+        let key = parse_crypto_file::<KEY_SIZE>("--key-file", &self.key_file)?;
+        let nonce =
+            parse_crypto_file::<NONCE_SIZE>("--nonce-file", &self.nonce_file)?;
+
+        Ok(EncryptionConfig {
+            key,
+            nonce,
+            counter: self.counter,
+        })
+    }
+}
+
+#[derive(Zeroize, ZeroizeOnDrop)]
 struct EncryptionConfig
 {
     key: [u8; KEY_SIZE],
@@ -161,22 +178,16 @@ struct EncryptionConfig
     counter: u32,
 }
 
-impl EncryptionArgs
+// Don't leak the encryption configuration to the console
+impl std::fmt::Debug for EncryptionConfig
 {
-    fn config(&self) -> Result<EncryptionConfig, CryptoError>
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
     {
-        let key =
-            parse_crypto_file::<KEY_SIZE>("--key-file", &self.key_file)?;
-        let nonce = parse_crypto_file::<NONCE_SIZE>(
-            "--nonce-file",
-            &self.nonce_file,
-        )?;
-
-        Ok(EncryptionConfig {
-            key,
-            nonce,
-            counter: self.counter,
-        })
+        write!(
+            f,
+            "EncryptionConfig {{ key: [..], nonce: [..], counter: {} }}",
+            self.counter
+        )
     }
 }
 
@@ -410,18 +421,18 @@ fn try_decrypt_message(
 }
 
 /// Parses a hex string into a raw byte array.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `field` - The field name.
 /// * `hex_value` - The hex string.
-/// 
+///
 /// # Returns
-/// 
+///
 /// The raw byte array.
-/// 
+///
 /// # Errors
-/// 
+///
 /// Returns [`CryptoError`] when the hex string is not a valid or
 /// when the hex string length is not equal to the expected length.
 fn parse_hex_array<const N: usize>(
@@ -449,20 +460,20 @@ fn parse_hex_array<const N: usize>(
 }
 
 /// Parses a crypto file into a byte array.
-/// 
+///
 /// A crypto file is either a key or a nonce file.
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `field` - The field name.
 /// * `path` - The path to the file.
-/// 
+///
 /// # Returns
-/// 
+///
 /// The byte array.
-/// 
+///
 /// # Errors
-/// 
+///
 /// Returns [`CryptoError`] when the file is not a valid hex string or
 /// when the file length is not equal to the expected length.
 fn parse_crypto_file<const N: usize>(
