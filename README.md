@@ -1,6 +1,6 @@
 # cloakimg
 
-Command-line tool for hiding and extracting UTF-8 text in images using RGB LSB steganography.
+A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB steganography.
 
 ## Features
 
