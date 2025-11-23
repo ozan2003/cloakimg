@@ -2,10 +2,10 @@
 use std::cmp::min;
 
 /// Size of a `ChaCha20` key in bytes.
-const KEY_SIZE: usize = 32;
+pub const KEY_SIZE: usize = 32;
 
 /// Size of an IETF `ChaCha20` nonce in bytes.
-const NONCE_SIZE: usize = 12;
+pub const NONCE_SIZE: usize = 12;
 
 /// `ChaCha20` block size in bytes.
 const BLOCK_SIZE: usize = 64;

@@ -4,6 +4,8 @@
 use std::fs;
 use std::path::Path;
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use image::codecs::bmp::BmpEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
@@ -12,6 +14,7 @@ use image::codecs::tiff::TiffEncoder;
 use image::{ExtendedColorType, ImageEncoder, RgbImage};
 use thiserror::Error;
 
+use crate::crypto::{ChaCha20, CryptoError, KEY_SIZE, NONCE_SIZE};
 use crate::stego::{StegoError, embed_text, extract_text};
 
 /// Parses CLI arguments and executes the requested operation.
@@ -66,6 +69,9 @@ pub enum AppError
         /// Extension detected on the output file
         output_extension: Box<str>,
     },
+
+    #[error(transparent)]
+    Crypto(#[from] CryptoError),
 }
 
 /// The main CLI parser
@@ -108,6 +114,9 @@ struct EncodingArgs
     /// Path to a UTF-8 text file to embed.
     #[arg(short = 'f', long = "file", value_name = "PATH")]
     text_file: Option<Box<Path>>,
+    /// Optional encryption parameters.
+    #[command(flatten)]
+    encryption: Option<EncryptionArgs>,
 }
 
 /// Arguments for the decoding
@@ -119,6 +128,56 @@ struct DecodingArgs
     /// Optional file to write the decoded text. Prints to stdout when omitted.
     #[arg(long = "output", short = 'o', value_name = "PATH")]
     output_text: Option<Box<Path>>,
+    /// Optional encryption parameters.
+    #[command(flatten)]
+    encryption: Option<EncryptionArgs>,
+}
+
+/// `ChaCha20` encryption arguments shared by encode/decode commands.
+#[derive(Args, Clone, Debug)]
+struct EncryptionArgs
+{
+    /// File containing a raw (32-byte) or hex-encoded `ChaCha20` key.
+    #[arg(long = "key-file", value_name = "PATH", requires = "nonce_file")]
+    key_file: Box<Path>,
+    /// File containing a raw (12-byte) or hex-encoded `ChaCha20` nonce.
+    #[arg(long = "nonce-file", value_name = "PATH", requires = "key_file")]
+    nonce_file: Box<Path>,
+    /// Initial `ChaCha20` block counter. Defaults to zero.
+    #[arg(
+        long = "counter",
+        value_name = "NUMBER",
+        default_value_t = 0,
+        requires_all = ["key_file", "nonce_file"]
+    )]
+    counter: u32,
+}
+
+#[derive(Clone, Debug)]
+struct EncryptionConfig
+{
+    key: [u8; KEY_SIZE],
+    nonce: [u8; NONCE_SIZE],
+    counter: u32,
+}
+
+impl EncryptionArgs
+{
+    fn config(&self) -> Result<EncryptionConfig, CryptoError>
+    {
+        let key =
+            parse_crypto_file::<KEY_SIZE>("--key-file", &self.key_file)?;
+        let nonce = parse_crypto_file::<NONCE_SIZE>(
+            "--nonce-file",
+            &self.nonce_file,
+        )?;
+
+        Ok(EncryptionConfig {
+            key,
+            nonce,
+            counter: self.counter,
+        })
+    }
 }
 
 /// Normalizes the extension of a path to lowercase.
@@ -155,10 +214,17 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
     }
 
     let mut image = load_image(&args.input)?;
-    let message = resolve_message(args)?;
+    let payload = {
+        let mut payload = resolve_message(args)?;
+        if let Some(encryption) = args.encryption.as_ref()
+        {
+            payload = try_encrypt_message(&payload, encryption)?;
+        }
+        payload
+    };
 
     // Embedding the message happens here
-    embed_text(&mut image, &message)?;
+    embed_text(&mut image, &payload)?;
 
     // Output the modified image to the specified path
     let mut file = fs::File::create(&args.output)?;
@@ -230,12 +296,20 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 {
     let image = load_image(&args.input)?;
-    // Extracting the message happens here
-    let message = extract_text(&image)?;
+    // Extract the hidden message and decrypt it only when encryption flags were
+    // provided.
+    let message = {
+        let mut message = extract_text(&image)?;
+        if let Some(encryption) = args.encryption.as_ref()
+        {
+            message = try_decrypt_message(&message, encryption)?;
+        }
+        message
+    };
 
     if let Some(path) = args.output_text
     {
-        fs::write(path, message)?;
+        fs::write(path, message.as_bytes())?;
     }
     else
     {
@@ -274,13 +348,171 @@ fn resolve_message(args: &mut EncodingArgs) -> Result<String, AppError>
     }
 }
 
+/// Tries to encrypt the message using the provided encryption arguments.
+///
+/// # Arguments
+///
+/// * `message` - The message to encrypt.
+/// * `encryption` - The encryption arguments.
+///
+/// # Returns
+///
+/// The Base64 encoded encrypted message.
+///
+/// # Errors
+///
+/// Returns [`CryptoError`] when encrypting the message fails.
+fn try_encrypt_message(
+    message: &str,
+    encryption: &EncryptionArgs,
+) -> Result<String, CryptoError>
+{
+    let config = encryption.config()?;
+    let mut cipher = ChaCha20::new(&config.key, &config.nonce, config.counter);
+
+    let ciphertext = cipher.encrypt(message.as_bytes());
+    // Encrypting the message gives us some garbled bytes that are not UTF-8
+    // encoded, since steganography layer works on valid UTF-8 encoded bytes
+    // we need to encode it to Base64 to make it suitable for embedding.
+    Ok(BASE64_STANDARD.encode(ciphertext))
+}
+
+/// Tries to decrypt the message using the provided encryption arguments.
+///
+/// # Arguments
+///
+/// * `payload` - The encrypted message.
+/// * `encryption` - The encryption arguments.
+///
+/// # Returns
+///
+/// The decrypted message.
+///
+/// # Errors
+///
+/// Returns [`CryptoError`] when decoding the Base64 encoded message, or when
+/// decrypting the message fails.
+fn try_decrypt_message(
+    payload: &str,
+    encryption: &EncryptionArgs,
+) -> Result<String, CryptoError>
+{
+    let config = encryption.config()?;
+
+    // Remove the base64 encoding to get the ciphertext.
+    let ciphertext = BASE64_STANDARD
+        .decode(payload.as_bytes())
+        .map_err(CryptoError::InvalidBase64)?;
+    let mut cipher = ChaCha20::new(&config.key, &config.nonce, config.counter);
+
+    let plaintext = cipher.decrypt(&ciphertext);
+    String::from_utf8(plaintext).map_err(CryptoError::InvalidDecryptedUtf8)
+}
+
+/// Parses a hex string into a raw byte array.
+/// 
+/// # Arguments
+/// 
+/// * `field` - The field name.
+/// * `hex_value` - The hex string.
+/// 
+/// # Returns
+/// 
+/// The raw byte array.
+/// 
+/// # Errors
+/// 
+/// Returns [`CryptoError`] when the hex string is not a valid or
+/// when the hex string length is not equal to the expected length.
+fn parse_hex_array<const N: usize>(
+    field: &str,
+    hex_value: &str,
+) -> Result<[u8; N], CryptoError>
+{
+    let bytes =
+        hex::decode(hex_value).map_err(|_| CryptoError::InvalidHex {
+            field: field.into(),
+        })?;
+
+    if bytes.len() != N
+    {
+        return Err(CryptoError::InvalidLength {
+            field: field.into(),
+            expected: N,
+            actual: bytes.len(),
+        });
+    }
+
+    let mut array = [0; N];
+    array.copy_from_slice(&bytes);
+    Ok(array)
+}
+
+/// Parses a crypto file into a byte array.
+/// 
+/// A crypto file is either a key or a nonce file.
+/// 
+/// # Arguments
+/// 
+/// * `field` - The field name.
+/// * `path` - The path to the file.
+/// 
+/// # Returns
+/// 
+/// The byte array.
+/// 
+/// # Errors
+/// 
+/// Returns [`CryptoError`] when the file is not a valid hex string or
+/// when the file length is not equal to the expected length.
+fn parse_crypto_file<const N: usize>(
+    field: &str,
+    path: &Path,
+) -> Result<[u8; N], CryptoError>
+{
+    let bytes =
+        fs::read(path).map_err(|source| CryptoError::KeyMaterialIo {
+            field: field.into(),
+            path: path.to_path_buf(),
+            source,
+        })?;
+
+    // Treat the bytes as binaty first.
+    if bytes.len() == N
+    {
+        let mut array = [0; N];
+        array.copy_from_slice(&bytes);
+        return Ok(array);
+    }
+
+    // If the bytes are not a valid binary, try to parse them as a hex string.
+    if let Ok(ascii) = std::str::from_utf8(&bytes)
+    {
+        let hex: String = ascii.split_whitespace().collect();
+        if !hex.is_empty() && hex.chars().all(|c| c.is_ascii_hexdigit())
+        {
+            return parse_hex_array(field, &hex);
+        }
+    }
+
+    Err(CryptoError::InvalidLength {
+        field: field.into(),
+        expected: N,
+        actual: bytes.len(),
+    })
+}
+
+#[cfg(test)]
 #[allow(
     unused_imports,
     reason = "when removed, it wont compile; most likely false positive"
 )]
 mod tests
 {
-    use std::path::Path;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    use tempfile::TempDir;
 
     use super::*;
 
@@ -292,6 +524,7 @@ mod tests
             output: Path::new("output.bmp").into(),
             text: Some("payload".into()),
             text_file: None,
+            encryption: None,
         };
 
         let error = handle_encode(&mut args)
@@ -305,5 +538,105 @@ mod tests
             } if input_extension.as_ref() == "png"
                 && output_extension.as_ref() == "bmp"
         ));
+    }
+
+    #[test]
+    fn encrypt_decrypt_roundtrip_via_cli_helpers()
+    {
+        let key_file = TempMaterial::from_bytes(
+            "key",
+            b"000102030405060708090a0b0c0d0e0f\
+              101112131415161718191a1b1c1d1e1f",
+        );
+        let nonce_file =
+            TempMaterial::from_bytes("nonce", b"000000000000004a00000000");
+
+        let encryption = EncryptionArgs {
+            key_file: key_file.boxed_path(),
+            nonce_file: nonce_file.boxed_path(),
+            counter: 1,
+        };
+
+        let plaintext = "Hello encrypted world!";
+        let encrypted = try_encrypt_message(plaintext, &encryption)
+            .expect("encrypt failed");
+        assert_ne!(plaintext, encrypted);
+
+        let decrypted = try_decrypt_message(&encrypted, &encryption)
+            .expect("decrypt failed");
+        assert_eq!(plaintext, decrypted);
+    }
+
+    #[test]
+    fn encryption_args_are_optional()
+    {
+        let encryption: Option<EncryptionArgs> = None;
+        let plaintext = "No crypto involved.";
+
+        let mut payload = plaintext.to_owned();
+        if let Some(ref encryption) = encryption
+        {
+            payload = try_encrypt_message(&payload, encryption)
+                .expect("encrypt failed");
+        }
+        assert_eq!(plaintext, payload);
+
+        if let Some(ref encryption) = encryption
+        {
+            payload = try_decrypt_message(&payload, encryption)
+                .expect("decrypt failed");
+        }
+        assert_eq!(plaintext, payload);
+    }
+
+    #[test]
+    fn rejects_invalid_file_length()
+    {
+        let short_key = TempMaterial::from_bytes("short-key", &[0x00]);
+        let valid_nonce = TempMaterial::from_bytes(
+            "valid-nonce",
+            b"000000000000004a00000000",
+        );
+
+        let encryption = EncryptionArgs {
+            key_file: short_key.boxed_path(),
+            nonce_file: valid_nonce.boxed_path(),
+            counter: 0,
+        };
+
+        let error = encryption
+            .config()
+            .expect_err("expected invalid key length error");
+
+        assert!(matches!(
+            error,
+            CryptoError::InvalidLength {
+                field,
+                expected: KEY_SIZE,
+                actual: 1
+            } if field.as_ref() == "--key-file"
+        ));
+    }
+
+    struct TempMaterial
+    {
+        path: PathBuf,
+        _dir: TempDir,
+    }
+
+    impl TempMaterial
+    {
+        fn from_bytes(prefix: &str, bytes: &[u8]) -> Self
+        {
+            let dir = TempDir::new().expect("failed to create tempdir");
+            let path = dir.path().join(format!("{prefix}.material"));
+            fs::write(&path, bytes).expect("failed to write temp material");
+            Self { path, _dir: dir }
+        }
+
+        fn boxed_path(&self) -> Box<Path>
+        {
+            self.path.clone().into_boxed_path()
+        }
     }
 }

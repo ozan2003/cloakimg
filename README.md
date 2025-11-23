@@ -7,6 +7,7 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
 - **Encode text into images**: Uses least significant bits of RGB channels.
 - **Decode embedded text**: Recover hidden messages from compatible images.
 - **File or inline input**: Provide text directly or from a UTF-8 text file.
+- **Optional ChaCha20 encryption**: Store a key/nonce pair in files to encrypt data before embedding.
 - **Safe error handling**: Clear error messages and non-zero exit codes on failure.
 
 ## Usage
@@ -47,6 +48,26 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
  ```bash
  cloakimg decode data/with_payload.png --output recovered.txt
  ```
+
+## Encryption
+
+Enable authenticated callers to encrypt the payload before embedding by providing file paths that contain a ChaCha20 key and nonce. Each file can hold either raw bytes (32 bytes for the key, 12 for the nonce) or an ASCII hex string. You may optionally adjust the initial block counter (defaults to `0`).
+
+```bash
+# Encrypt before embedding
+cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png \
+  --key-file secrets/chacha20.key \
+  --nonce-file secrets/chacha20.nonce \
+  --counter 1 \
+  -i "Meet at 19:30."
+
+# Provide the same parameters to decrypt
+cloakimg decode data/tp0n3p08_secret.png \
+  --key-file secrets/chacha20.key \
+  --nonce-file secrets/chacha20.nonce
+```
+
+Mismatched keys, nonces, or counters will prevent successful decryption. Ensure each nonce is unique per key.
 
 ## Limitations
 
