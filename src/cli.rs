@@ -1,6 +1,7 @@
 //! Command line interface for the application.
 //!
-//! Provides an entry point for the application and handles the CLI arguments.
+//! Provides an entry point for the application and handles the CLI arguments
+//! as well as the encryption/decryption helpers and steganography routines.
 use std::fs;
 use std::path::Path;
 
@@ -15,7 +16,7 @@ use image::{ExtendedColorType, ImageEncoder, RgbImage};
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::crypto::{ChaCha20, CryptoError, KEY_SIZE, NONCE_SIZE};
+use crate::crypto::{ChaCha20, Cipher, CryptoError, KEY_SIZE, NONCE_SIZE};
 use crate::stego::{StegoError, embed_text, extract_text};
 
 /// Parses CLI arguments and executes the requested operation.
@@ -359,6 +360,60 @@ fn resolve_message(args: &mut EncodingArgs) -> Result<String, AppError>
     }
 }
 
+/// Encrypts a message using an arbitrary `Cipher` implementation.
+///
+/// This helper is independent of the concrete algorithm; callers are
+/// responsible for constructing the appropriate cipher instance.
+///
+/// # Arguments
+///
+/// * `message` - The message to encrypt.
+/// * `cipher` - The cipher to use.
+///
+/// # Returns
+///
+/// The Base64 encoded encrypted message.
+fn encrypt_with_cipher<C: Cipher>(message: &str, cipher: &mut C) -> String
+{
+    let ciphertext = cipher.encrypt(message.as_bytes());
+    // Encrypting the message gives us some garbled bytes that are not UTF-8
+    // encoded, since the steganography layer works on valid UTF-8 encoded bytes
+    // we need to encode it to Base64 to make it suitable for embedding.
+    BASE64_STANDARD.encode(ciphertext)
+}
+
+/// Decrypts a message using an arbitrary `Cipher` implementation.
+///
+/// This helper is independent of the concrete algorithm; callers are
+/// responsible for constructing the appropriate cipher instance.
+///
+/// # Arguments
+///
+/// * `payload` - The Base64 encoded encrypted message.
+/// * `cipher` - The cipher to use.
+///
+/// # Returns
+///
+/// The decrypted message.
+///
+/// # Errors
+///
+/// Returns [`CryptoError`] when decoding the Base64 encoded message fails, or
+/// when the decrypted payload is not valid UTF-8.
+fn decrypt_with_cipher<C: Cipher>(
+    payload: &str,
+    cipher: &mut C,
+) -> Result<String, CryptoError>
+{
+    // Remove the base64 encoding to get the ciphertext.
+    let ciphertext = BASE64_STANDARD
+        .decode(payload.as_bytes())
+        .map_err(CryptoError::InvalidBase64)?;
+
+    let plaintext = cipher.decrypt(&ciphertext);
+    String::from_utf8(plaintext).map_err(CryptoError::InvalidDecryptedUtf8)
+}
+
 /// Tries to encrypt the message using the provided encryption arguments.
 ///
 /// # Arguments
@@ -378,21 +433,17 @@ fn try_encrypt_message(
     encryption: &EncryptionArgs,
 ) -> Result<String, CryptoError>
 {
+    // Currently this constructs a `ChaCha20` cipher
     let config = encryption.config()?;
     let mut cipher = ChaCha20::new(&config.key, &config.nonce, config.counter);
-
-    let ciphertext = cipher.encrypt(message.as_bytes());
-    // Encrypting the message gives us some garbled bytes that are not UTF-8
-    // encoded, since steganography layer works on valid UTF-8 encoded bytes
-    // we need to encode it to Base64 to make it suitable for embedding.
-    Ok(BASE64_STANDARD.encode(ciphertext))
+    Ok(encrypt_with_cipher(message, &mut cipher))
 }
 
 /// Tries to decrypt the message using the provided encryption arguments.
 ///
 /// # Arguments
 ///
-/// * `payload` - The encrypted message.
+/// * `payload` - The Base64 encoded encrypted message.
 /// * `encryption` - The encryption arguments.
 ///
 /// # Returns
@@ -409,15 +460,8 @@ fn try_decrypt_message(
 ) -> Result<String, CryptoError>
 {
     let config = encryption.config()?;
-
-    // Remove the base64 encoding to get the ciphertext.
-    let ciphertext = BASE64_STANDARD
-        .decode(payload.as_bytes())
-        .map_err(CryptoError::InvalidBase64)?;
     let mut cipher = ChaCha20::new(&config.key, &config.nonce, config.counter);
-
-    let plaintext = cipher.decrypt(&ciphertext);
-    String::from_utf8(plaintext).map_err(CryptoError::InvalidDecryptedUtf8)
+    decrypt_with_cipher(payload, &mut cipher)
 }
 
 /// Parses a hex string into a raw byte array.

@@ -1,6 +1,8 @@
 //! `ChaCha20` stream cipher implementation as stated in RFC 7539.
 use std::cmp::min;
 
+use crate::crypto::Cipher;
+
 /// Size of a `ChaCha20` key in bytes.
 pub const KEY_SIZE: usize = 32;
 
@@ -91,30 +93,6 @@ impl ChaCha20
         }
     }
 
-    #[allow(clippy::doc_markdown, reason = "XORed need not backticks")]
-    /// Encrypts the supplied plaintext and returns the ciphertext.
-    ///
-    /// # Arguments
-    /// * `plaintext` - Data that will be XORed with the `ChaCha20` keystream.
-    #[must_use]
-    pub fn encrypt(&mut self, plaintext: &[u8]) -> Vec<u8>
-    {
-        let mut output = plaintext.to_vec();
-        self.apply_keystream(&mut output);
-        output
-    }
-
-    /// Decrypts the supplied ciphertext and returns the plaintext.
-    ///
-    /// # Arguments
-    /// * `ciphertext` - Data that was produced by `ChaCha20` encryption.
-    #[must_use]
-    pub fn decrypt(&mut self, ciphertext: &[u8]) -> Vec<u8>
-    {
-        // Decryption is done the same way as encryption
-        self.encrypt(ciphertext)
-    }
-
     fn refill_keystream(&mut self)
     {
         self.keystream = self.generate_block(self.counter);
@@ -153,6 +131,31 @@ impl ChaCha20
         }
 
         serialize_block(&working)
+    }
+}
+
+impl Cipher for ChaCha20
+{
+    #[allow(clippy::doc_markdown, reason = "XORed need not backticks")]
+    /// Encrypts the supplied plaintext and returns the ciphertext.
+    ///
+    /// # Arguments
+    /// * `plaintext` - Data that will be XORed with the `ChaCha20` keystream.
+    fn encrypt(&mut self, plaintext: &[u8]) -> Vec<u8>
+    {
+        let mut output = plaintext.to_vec();
+        self.apply_keystream(&mut output);
+        output
+    }
+
+    /// Decrypts the supplied ciphertext and returns the plaintext.
+    ///
+    /// # Arguments
+    /// * `ciphertext` - Data that was produced by `ChaCha20` encryption.
+    fn decrypt(&mut self, ciphertext: &[u8]) -> Vec<u8>
+    {
+        // Decryption is done the same way as encryption
+        self.encrypt(ciphertext)
     }
 }
 

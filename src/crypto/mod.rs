@@ -3,10 +3,12 @@
 //! Provides implementations of the `ChaCha20` stream cipher as stated in RFC
 //! 7539.
 mod chacha20;
+mod cipher;
 
 use std::path::PathBuf;
 
 pub use chacha20::{ChaCha20, KEY_SIZE, NONCE_SIZE};
+pub use cipher::Cipher;
 use thiserror::Error;
 
 /// Errors that can be emitted while performing cryptographic operations
