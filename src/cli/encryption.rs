@@ -1,3 +1,7 @@
+//! CLI encryption plumbing.
+//!
+//! Defines the shared encryption flag group plus helpers that load and validate
+//! key/nonce material.
 use std::path::Path;
 
 use clap::Args;

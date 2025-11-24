@@ -1,3 +1,11 @@
+//! CLI payload orchestration.
+//!
+//! Covers everything that turns user input into bytes suitable for
+//! steganography operations, embedding back and forth:
+//! * resolves CLI text sources
+//! * applies optional encryption
+//! * converts between UTF-8/plaintext and steganography-ready Base64 bytes for
+//!   both encode and decode paths.
 use std::fs;
 
 use base64::Engine;

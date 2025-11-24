@@ -72,6 +72,7 @@ pub enum AppError
         output_extension: Box<str>,
     },
 
+    /// Something went wrong with the crypto operations
     #[error(transparent)]
     Crypto(#[from] CryptoError),
 }

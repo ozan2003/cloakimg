@@ -1,3 +1,7 @@
+//! CLI image helpers.
+//!
+//! Normalizes extensions, loads RGB buffers, and writes files with the
+//! appropriate encoder.
 use std::fs::File;
 use std::path::Path;
 
@@ -20,6 +24,10 @@ pub(super) fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
 
 /// Loads an image from the specified path and converts it to an RGB buffer.
 ///
+/// # Arguments
+/// 
+/// * `path` - The path to the image to load.
+/// 
 /// # Errors
 ///
 /// Returns [`AppError`] when reading the file, or converting the image.
@@ -30,6 +38,16 @@ pub(super) fn load_image<P: AsRef<Path>>(path: P)
 }
 
 /// Writes the provided image using the encoder defined by the extension.
+/// 
+/// # Arguments
+/// 
+/// * `image` - The image to write.
+/// * `extension` - The extension of the output file.
+/// * `output` - The path to the output file.
+/// 
+/// # Errors
+/// 
+/// Returns [`AppError`] when writing the file.
 pub(super) fn write_image<P: AsRef<Path>>(
     image: &RgbImage,
     extension: Option<&str>,
