@@ -31,13 +31,13 @@ pub(super) struct EncryptionArgs
 
 impl EncryptionArgs
 {
-    pub(super) fn config(&self) -> Result<EncryptionConfig, CryptoError>
+    pub(super) fn context(&self) -> Result<EncryptionContext, CryptoError>
     {
         let key = parse_crypto_file::<KEY_SIZE>("--key-file", &self.key_file)?;
         let nonce =
             parse_crypto_file::<NONCE_SIZE>("--nonce-file", &self.nonce_file)?;
 
-        Ok(EncryptionConfig {
+        Ok(EncryptionContext {
             key,
             nonce,
             counter: self.counter,
@@ -46,21 +46,21 @@ impl EncryptionArgs
 }
 
 #[derive(Zeroize, ZeroizeOnDrop)]
-pub(super) struct EncryptionConfig
+pub(super) struct EncryptionContext
 {
     pub(super) key: [u8; KEY_SIZE],
     pub(super) nonce: [u8; NONCE_SIZE],
     pub(super) counter: u32,
 }
 
-// Don't leak the encryption configuration to the console
-impl std::fmt::Debug for EncryptionConfig
+// Don't leak the encryption context to the console
+impl std::fmt::Debug for EncryptionContext
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
     {
         write!(
             f,
-            "EncryptionConfig {{ key: [..], nonce: [..], counter: {} }}",
+            "EncryptionContext {{ key: [..], nonce: [..], counter: {} }}",
             self.counter
         )
     }
@@ -181,7 +181,7 @@ mod tests
         };
 
         let error = encryption
-            .config()
+            .context()
             .expect_err("expected invalid key length error");
 
         assert!(matches!(
