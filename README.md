@@ -1,6 +1,6 @@
 # cloakimg
 
-> [!WARNING]  
+> [!CAUTION]  
 > This tool uses an hand-written implementation of various cryptographic primitives.
 >
 > It is not recommended for production use.
