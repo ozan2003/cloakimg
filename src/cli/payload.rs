@@ -56,7 +56,8 @@ pub(super) fn try_encrypt_message(
 {
     // Currently this constructs a `ChaCha20` cipher
     let context = encryption.context()?;
-    let mut cipher = ChaCha20::new(&context.key, &context.nonce, context.counter);
+    let mut cipher =
+        ChaCha20::new(&context.key, &context.nonce, context.counter);
     Ok(encrypt_with_cipher(message, &mut cipher))
 }
 
@@ -81,7 +82,8 @@ pub(super) fn try_decrypt_message(
 ) -> Result<String, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher = ChaCha20::new(&context.key, &context.nonce, context.counter);
+    let mut cipher =
+        ChaCha20::new(&context.key, &context.nonce, context.counter);
     decrypt_with_cipher(payload, &mut cipher)
 }
 

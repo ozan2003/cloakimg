@@ -5,7 +5,7 @@
 //! # Errors
 //!
 //! Returns [`StegoError`] when extracting text fails.
-use image::RgbImage;
+use image::{Pixel, RgbImage};
 
 use super::{
     HEADER_BITS, MAX_REASONABLE_MESSAGE_SIZE, StegoError, channel_capacity_bits,
@@ -44,7 +44,7 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
     let mut bit_iter = image
         .pixels()
         // ignore alpha channel
-        .flat_map(|pixel| pixel.0[..3].iter())
+        .flat_map(Pixel::channels)
         // just the lsb
         .map(|channel| channel & 1);
 
