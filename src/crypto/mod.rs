@@ -18,6 +18,8 @@ pub enum CryptoError
     {
         /// Name of the offending field
         field: Box<str>,
+        #[source]
+        source: hex::FromHexError,
     },
 
     /// A parsed hex string has the wrong length

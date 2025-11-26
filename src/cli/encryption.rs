@@ -89,8 +89,9 @@ fn parse_hex_array<const N: usize>(
 ) -> Result<[u8; N], CryptoError>
 {
     let bytes =
-        hex::decode(hex_value).map_err(|_| CryptoError::InvalidHex {
+        hex::decode(hex_value).map_err(|source| CryptoError::InvalidHex {
             field: field.into(),
+            source,
         })?;
 
     if bytes.len() != N
@@ -147,8 +148,12 @@ fn parse_crypto_file<const N: usize>(
     // If the bytes are not a valid binary, try to parse them as a hex string.
     if let Ok(ascii) = std::str::from_utf8(&bytes)
     {
+        let looks_textual = ascii
+            .chars()
+            .all(|c| c.is_ascii_graphic() || c.is_ascii_whitespace());
+
         let hex: String = ascii.split_whitespace().collect();
-        if !hex.is_empty() && hex.chars().all(|c| c.is_ascii_hexdigit())
+        if looks_textual && !hex.is_empty()
         {
             return parse_hex_array(field, &hex);
         }
@@ -193,6 +198,29 @@ mod tests
                 expected: KEY_SIZE,
                 actual: 1
             } if field.as_ref() == "--key-file"
+        ));
+    }
+
+    #[test]
+    fn rejects_non_hex_utf8_material()
+    {
+        let invalid_key = TempMaterial::from_bytes(b"not a valid hex string");
+        let valid_nonce = TempMaterial::from_bytes(b"000000000000004a00000000");
+
+        let encryption = EncryptionArgs {
+            key_file: invalid_key.boxed_path(),
+            nonce_file: valid_nonce.boxed_path(),
+            counter: 0,
+        };
+
+        let error = encryption
+            .context()
+            .expect_err("expected invalid hex key error");
+
+        assert!(matches!(
+            error,
+            CryptoError::InvalidHex { field, source: _ }
+                if field.as_ref() == "--key-file"
         ));
     }
 
