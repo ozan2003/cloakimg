@@ -216,10 +216,6 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 }
 
 #[cfg(test)]
-#[allow(
-    unused_imports,
-    reason = "when removed, it wont compile; most likely false positive"
-)]
 mod tests
 {
     use std::path::Path;
