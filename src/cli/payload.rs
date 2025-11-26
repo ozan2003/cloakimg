@@ -31,7 +31,10 @@ pub(super) fn resolve_message(
         (Some(text), None) => Ok(text),
         (None, Some(path)) => Ok(fs::read_to_string(path)?),
         // this shouldn't happen because of the mutually exclusive group
-        (None, None) | (Some(_), Some(_)) => Err(AppError::MissingMessage),
+        (None, None) | (Some(_), Some(_)) => unreachable!(
+            "mutually exclusive group should ensure that either text or \
+             text_file is provided"
+        ),
     }
 }
 
