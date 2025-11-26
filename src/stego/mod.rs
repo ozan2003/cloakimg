@@ -30,7 +30,7 @@ const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
 /// Maximum reasonable message size in bytes
 // Messages exceeding this size are considered unreasonable
-const MAX_REASONABLE_MESSAGE_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
+pub const MAX_REASONABLE_MESSAGE_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
 
 /// Errors that can be emitted while embedding or extracting text
 #[derive(Debug, Error)]

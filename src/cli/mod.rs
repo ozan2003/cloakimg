@@ -9,6 +9,7 @@ use std::fs;
 use std::path::Path;
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
+use const_format::formatcp;
 use thiserror::Error;
 
 use self::encryption::EncryptionArgs;
@@ -17,7 +18,9 @@ use self::payload::{
     resolve_message, try_decrypt_message, try_encrypt_message,
 };
 use crate::crypto::CryptoError;
-use crate::stego::{StegoError, embed_text, extract_text};
+use crate::stego::{
+    MAX_REASONABLE_MESSAGE_SIZE, StegoError, embed_text, extract_text,
+};
 
 /// Parses CLI arguments and executes the requested operation.
 ///
@@ -82,7 +85,11 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode text with RGB LSB steganography for files"
+    about = "Encode and decode text with RGB LSB steganography for files",
+    after_help = formatcp!(
+        "Maximum reasonable message size is {} MiB",
+        MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
+    )
 )]
 struct Cli
 {
