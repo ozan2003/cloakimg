@@ -7,19 +7,21 @@ use std::path::Path;
 use clap::Args;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::crypto::{CryptoError, KEY_SIZE, NONCE_SIZE};
+use crate::crypto::{
+    AES_KEY_SIZE as KEY_SIZE, AES_NONCE_SIZE as NONCE_SIZE, CryptoError,
+};
 
-/// `ChaCha20` encryption arguments shared by encode/decode commands.
+/// Encryption arguments shared by encode/decode commands.
 #[derive(Args, Clone, Debug)]
 pub(super) struct EncryptionArgs
 {
-    /// File containing a raw (32-byte) or hex-encoded `ChaCha20` key.
+    /// File containing a raw (32-byte) or hex-encoded key.
     #[arg(long = "key-file", value_name = "PATH", requires = "nonce_file")]
     pub(super) key_file: Box<Path>,
-    /// File containing a raw (12-byte) or hex-encoded `ChaCha20` nonce.
+    /// File containing a raw (12-byte) or hex-encoded nonce.
     #[arg(long = "nonce-file", value_name = "PATH", requires = "key_file")]
     pub(super) nonce_file: Box<Path>,
-    /// Initial `ChaCha20` block counter. Defaults to zero.
+    /// Initial block counter. Defaults to zero.
     #[arg(
         long = "counter",
         value_name = "NUMBER",

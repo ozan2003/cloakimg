@@ -1,13 +1,10 @@
 //! Crypto routines for the steganography tool.
-//!
-//! Provides implementations of the `ChaCha20` stream cipher as stated in RFC
-//! 7539.
-mod chacha20;
+mod aes;
 mod cipher;
 
 use std::path::PathBuf;
 
-pub use chacha20::{ChaCha20, KEY_SIZE, NONCE_SIZE};
+pub use aes::{AES_BLOCK_SIZE, AES_KEY_SIZE, AES_NONCE_SIZE, Aes128Ctr};
 pub use cipher::Cipher;
 use thiserror::Error;
 

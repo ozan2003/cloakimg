@@ -13,7 +13,7 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
-use crate::crypto::{ChaCha20, Cipher, CryptoError};
+use crate::crypto::{Aes128Ctr, Cipher, CryptoError};
 
 /// Resolves the message to embed from the command line arguments.
 ///
@@ -54,10 +54,9 @@ pub(super) fn try_encrypt_message(
     encryption: &EncryptionArgs,
 ) -> Result<String, CryptoError>
 {
-    // Currently this constructs a `ChaCha20` cipher
     let context = encryption.context()?;
     let mut cipher =
-        ChaCha20::new(&context.key, &context.nonce, context.counter);
+        Aes128Ctr::new(&context.key, &context.nonce, context.counter);
     Ok(encrypt_with_cipher(message, &mut cipher))
 }
 
@@ -83,7 +82,7 @@ pub(super) fn try_decrypt_message(
 {
     let context = encryption.context()?;
     let mut cipher =
-        ChaCha20::new(&context.key, &context.nonce, context.counter);
+        Aes128Ctr::new(&context.key, &context.nonce, context.counter);
     decrypt_with_cipher(payload, &mut cipher)
 }
 
@@ -153,10 +152,7 @@ mod tests
     #[test]
     fn encrypt_decrypt_roundtrip_via_cli_helpers()
     {
-        let key_file = TempMaterial::from_bytes(
-            b"000102030405060708090a0b0c0d0e0f\
-              101112131415161718191a1b1c1d1e1f",
-        );
+        let key_file = TempMaterial::from_bytes(b"0001020304050607");
         let nonce_file = TempMaterial::from_bytes(b"000000000000004a00000000");
 
         let encryption = EncryptionArgs {
