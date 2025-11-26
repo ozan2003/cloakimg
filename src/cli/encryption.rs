@@ -133,7 +133,7 @@ fn parse_crypto_file<const N: usize>(
     let bytes =
         std::fs::read(path).map_err(|source| CryptoError::KeyMaterialIo {
             field: field.into(),
-            path: path.to_path_buf(),
+            path: path.into(),
             source,
         })?;
 

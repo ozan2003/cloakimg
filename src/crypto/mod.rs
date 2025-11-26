@@ -2,7 +2,7 @@
 mod aes;
 mod cipher;
 
-use std::path::PathBuf;
+use std::path::Path;
 
 pub use aes::{AES_BLOCK_SIZE, AES_KEY_SIZE, AES_NONCE_SIZE, Aes128Ctr};
 pub use cipher::Cipher;
@@ -58,7 +58,7 @@ pub enum CryptoError
         /// Name of the offending field
         field: Box<str>,
         /// Path to the file that could not be read
-        path: PathBuf,
+        path: Box<Path>,
         /// Source I/O error
         #[source]
         source: std::io::Error,
