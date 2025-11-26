@@ -13,11 +13,12 @@ use thiserror::Error;
 pub enum CryptoError
 {
     /// A hex string contained invalid characters
-    #[error("invalid {field} hex string")]
+    #[error("invalid {field} hex string: {source}")]
     InvalidHex
     {
         /// Name of the offending field
         field: Box<str>,
+        /// Source hex error
         #[source]
         source: hex::FromHexError,
     },
