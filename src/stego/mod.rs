@@ -90,6 +90,10 @@ pub enum StegoError
     /// The decoded payload is not valid UTF-8
     #[error("decoded payload is not valid UTF-8")]
     InvalidUtf8(#[from] std::string::FromUtf8Error),
+
+    /// The payload length is too large to fit in a to an int
+    #[error(transparent)]
+    PayloadLengthParseError(#[from] std::num::TryFromIntError),
 }
 
 /// Returns the maximum message size (in bytes) that can be embedded in the

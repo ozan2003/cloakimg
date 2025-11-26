@@ -82,7 +82,7 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode text with RGB LSB steganography for  files"
+    about = "Encode and decode text with RGB LSB steganography for files"
 )]
 struct Cli
 {

@@ -60,12 +60,9 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
             length_bits = (length_bits << 1) | u32::from(bit);
         }
 
-        length_bits.try_into().unwrap_or_else(|_| {
-            panic!(
-                "length_bits is too large to fit in {}",
-                std::any::type_name_of_val(&length_bits)
-            )
-        })
+        length_bits
+            .try_into()
+            .map_err(StegoError::PayloadLengthParseError)?
     };
 
     if declared_bytes > MAX_REASONABLE_MESSAGE_SIZE
