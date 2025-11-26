@@ -12,7 +12,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum CryptoError
 {
-    /// A hex string contained invalid characters
+    /// A hex string is invalid
     #[error("invalid {field} hex string: {source}")]
     InvalidHex
     {
