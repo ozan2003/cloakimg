@@ -263,7 +263,9 @@ mod tests
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result
         {
-            write!(f, "Cli {{ command: {:?} }}", self.command)
+            f.debug_struct("Cli")
+                .field("command", &self.command)
+                .finish()
         }
     }
 
@@ -293,12 +295,11 @@ mod tests
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result
         {
-            write!(
-                f,
-                "EncryptionArgs {{ key_file: {:?}, nonce_file: {:?}, counter: \
-                 {:?} }}",
-                self.key_file, self.nonce_file, self.counter
-            )
+            f.debug_struct("EncryptionArgs")
+                .field("key_file", &self.key_file)
+                .field("nonce_file", &self.nonce_file)
+                .field("counter", &self.counter)
+                .finish()
         }
     }
 
@@ -306,16 +307,13 @@ mod tests
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result
         {
-            write!(
-                f,
-                "EncodingArgs {{ input: {:?}, output: {:?}, text: {:?}, \
-                 text_file: {:?}, encryption: {:?} }}",
-                self.input,
-                self.output,
-                self.text,
-                self.text_file,
-                self.encryption
-            )
+            f.debug_struct("EncodingArgs")
+                .field("input", &self.input)
+                .field("output", &self.output)
+                .field("text", &self.text)
+                .field("text_file", &self.text_file)
+                .field("encryption", &self.encryption)
+                .finish()
         }
     }
 
@@ -323,12 +321,11 @@ mod tests
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result
         {
-            write!(
-                f,
-                "DecodingArgs {{ input: {:?}, output_text: {:?}, encryption: \
-                 {:?} }}",
-                self.input, self.output_text, self.encryption
-            )
+            f.debug_struct("DecodingArgs")
+                .field("input", &self.input)
+                .field("output_text", &self.output_text)
+                .field("encryption", &self.encryption)
+                .finish()
         }
     }
 
@@ -336,7 +333,9 @@ mod tests
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> Result
         {
-            write!(f, "CapacityArgs {{ input: {:?} }}", self.input)
+            f.debug_struct("CapacityArgs")
+                .field("input", &self.input)
+                .finish()
         }
     }
 

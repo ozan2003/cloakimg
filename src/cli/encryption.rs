@@ -70,11 +70,11 @@ impl std::fmt::Debug for EncryptionContext
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
     {
-        write!(
-            f,
-            "EncryptionContext {{ key: [..], nonce: [..], counter: {} }}",
-            self.counter
-        )
+        f.debug_struct("EncryptionContext")
+            .field("key", &"[..]")
+            .field("nonce", &"[..]")
+            .field("counter", &self.counter)
+            .finish()
     }
 }
 
