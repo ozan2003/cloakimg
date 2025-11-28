@@ -27,6 +27,7 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
 
 - **`encode`**: Embed text into a file.
 - **`decode`**: Extract text from a file.
+- **`cap`**: Calculate the maximum possible payload size for an image.
 
  Run the following to see the built-in help:
 
@@ -60,7 +61,7 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
  cloakimg decode data/with_payload.png --output recovered.txt
  ```
 
-## Encryption
+## Encryption (Optional)
 
 Enable authenticated callers to encrypt the payload before embedding by providing file paths that contain a key and nonce. Each file can hold either raw bytes (32 bytes for the key, 12 for the nonce) or an ASCII hex string. You may optionally adjust the initial block counter (defaults to `0`).
 
