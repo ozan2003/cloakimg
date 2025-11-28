@@ -49,9 +49,9 @@ pub fn embed_text(image: &mut RgbImage, message: &str)
     // HEADER_BITS is reserved for the payload length, the rest belongs to the
     // payload
     let payload_available_bytes =
-        (total_available_bits.saturating_sub(HEADER_BITS.into())) / 8;
+        (total_available_bits.saturating_sub(HEADER_BITS)) / 8;
     // the total number of bits required for the length and the payload
-    let total_required_bits = usize::from(HEADER_BITS) + payload.len() * 8;
+    let total_required_bits = HEADER_BITS + payload.len() * 8;
 
     if total_required_bits > total_available_bits
     {
@@ -83,13 +83,13 @@ struct PayloadBits<'message>
     /// The message to embed
     message: &'message [u8],
     /// The length of the message
-    msg_length: usize,
+    msg_byte_len: usize,
     /// The index of the next bit in the length
-    msg_length_bit_index: u8,
-    /// The index of the next byte across the message
+    header_bit_index: usize,
+    /// The index of the current byte across the message
     msg_byte_index: usize,
-    /// The index of the bit in the current byte
-    bit_index: u8,
+    /// The index of the current bit in the current byte
+    curr_bit_index: u8,
 }
 
 impl<'message> PayloadBits<'message>
@@ -98,7 +98,7 @@ impl<'message> PayloadBits<'message>
     {
         Self {
             message,
-            msg_length: message.len(),
+            msg_byte_len: message.len(),
             ..Default::default()
         }
     }
@@ -106,14 +106,18 @@ impl<'message> PayloadBits<'message>
     fn next_bit(&mut self) -> Option<u8>
     {
         // encode the length
-        if self.msg_length_bit_index < HEADER_BITS
+        if self.header_bit_index < HEADER_BITS
         {
-            let shift = HEADER_BITS - 1 - self.msg_length_bit_index;
-            let bit = ((self.msg_length >> shift) & 1)
-                .try_into()
-                .ok()?;
+            // lsb's index is 0
+            let shift = (HEADER_BITS - 1) - self.header_bit_index;
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "As we need only a single bit, we can shave off the \
+                          excess zero bits"
+            )]
+            let bit = ((self.msg_byte_len >> shift) & 1) as _;
 
-            self.msg_length_bit_index += 1;
+            self.header_bit_index += 1;
             return Some(bit);
         }
 
@@ -123,14 +127,23 @@ impl<'message> PayloadBits<'message>
         }
 
         let byte = self.message[self.msg_byte_index];
-        let shift = 7 - self.bit_index;
-        let bit = (byte >> shift) & 1;
+        // lsb's index is 0
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "All integer bit lengths are less than u8::MAX"
+        )]
+        let shift_value = (u8::BITS as u8 - 1) - self.curr_bit_index;
+        let bit = (byte >> shift_value) & 1;
 
-        self.bit_index += 1;
-        if self.bit_index == 8
+        self.curr_bit_index += 1;
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "All integer bit lengths are less than u8::MAX"
+        )]
+        if self.curr_bit_index == u8::BITS as _
         {
             // reset the bit index and move to the next byte
-            self.bit_index = 0;
+            self.curr_bit_index = 0;
             self.msg_byte_index += 1;
         }
 
@@ -149,11 +162,12 @@ impl Iterator for PayloadBits<'_>
 
     fn size_hint(&self) -> (usize, Option<usize>)
     {
+        // The iterator will always yield at least HEADER_BITS bits
         (
-            HEADER_BITS as usize,
-            self.msg_length
+            HEADER_BITS as _,
+            self.msg_byte_len
                 .checked_mul(8)
-                .and_then(|l| l.checked_add(HEADER_BITS as usize)),
+                .and_then(|l| l.checked_add(HEADER_BITS as _)),
         )
     }
 }
