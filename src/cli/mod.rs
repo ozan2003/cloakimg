@@ -66,7 +66,7 @@ pub enum AppError
 }
 
 /// The main CLI parser
-#[derive(Parser)]
+#[derive(Debug, Parser)]
 #[command(
     author,
     version,
@@ -83,7 +83,7 @@ struct Cli
 }
 
 /// The main command
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 enum Command
 {
     Encode(EncodingArgs),
@@ -92,7 +92,7 @@ enum Command
 }
 
 /// Embed a message into an image.
-#[derive(Args)]
+#[derive(Debug, Args)]
 #[command(group(
     ArgGroup::new("message")
         .required(true)
@@ -116,7 +116,7 @@ struct EncodingArgs
 }
 
 /// Extract a message from an image.
-#[derive(Args)]
+#[derive(Debug, Args)]
 struct DecodingArgs
 {
     /// Image that contains the text.
@@ -130,7 +130,7 @@ struct DecodingArgs
 }
 
 /// Calculate the maximum possible payload size for an image.
-#[derive(Args)]
+#[derive(Debug, Args)]
 struct CapacityArgs
 {
     /// Image to calculate the possible payload size for.
@@ -253,6 +253,8 @@ mod tests
 {
     use std::path::Path;
 
+    use clap::{CommandFactory, Parser};
+
     use super::*;
 
     #[test]
@@ -277,5 +279,234 @@ mod tests
             } if input_extension.as_ref() == "png"
                 && output_extension.as_ref() == "bmp"
         ));
+    }
+
+    #[test]
+    fn clap_configuration_is_sound()
+    {
+        Cli::command().debug_assert();
+    }
+
+    #[test]
+    fn parses_encode_with_inline_text()
+    {
+        let cli = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--input",
+            "secret",
+        ])
+        .expect("expected encode command");
+
+        match cli.command
+        {
+            Command::Encode(args) =>
+            {
+                assert_eq!(args.input.as_ref(), Path::new("input.png"));
+                assert_eq!(args.output.as_ref(), Path::new("output.png"));
+                assert_eq!(args.text.as_deref(), Some("secret"));
+                assert!(args.text_file.is_none());
+                assert!(args.encryption.is_none());
+            },
+            other => panic!("expected encode command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_encode_with_text_file()
+    {
+        let cli = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--file",
+            "message.txt",
+        ])
+        .expect("expected encode command");
+
+        match cli.command
+        {
+            Command::Encode(args) =>
+            {
+                assert_eq!(args.input.as_ref(), Path::new("input.png"));
+                assert_eq!(args.output.as_ref(), Path::new("output.png"));
+                assert!(args.text.is_none());
+                assert_eq!(
+                    args.text_file.as_deref(),
+                    Some(Path::new("message.txt"))
+                );
+            },
+            other => panic!("expected encode command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_encode_with_encryption_flags()
+    {
+        let cli = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--input",
+            "secret",
+            "--key-file",
+            "key.bin",
+            "--nonce-file",
+            "nonce.bin",
+            "--counter",
+            "42",
+        ])
+        .expect("expected encode command");
+
+        match cli.command
+        {
+            Command::Encode(mut args) =>
+            {
+                let encryption = args
+                    .encryption
+                    .take()
+                    .expect("encryption flags should be parsed");
+                assert_eq!(encryption.key_file.as_ref(), Path::new("key.bin"));
+                assert_eq!(
+                    encryption.nonce_file.as_ref(),
+                    Path::new("nonce.bin")
+                );
+                assert_eq!(encryption.counter, 42);
+            },
+            other => panic!("expected encode command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn encode_requires_message_source()
+    {
+        Cli::try_parse_from(["cloakpng", "encode", "input.png", "output.png"])
+            .expect_err("missing message source must error");
+    }
+
+    #[test]
+    fn encryption_flags_require_pairs()
+    {
+        let err = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--input",
+            "secret",
+            "--key-file",
+            "key.bin",
+        ]);
+        assert!(
+            err.is_err(),
+            "providing --key-file without --nonce-file must error"
+        );
+
+        let err = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--input",
+            "secret",
+            "--nonce-file",
+            "nonce.bin",
+        ]);
+        assert!(
+            err.is_err(),
+            "providing --nonce-file without --key-file must error"
+        );
+
+        let err = Cli::try_parse_from([
+            "cloakpng",
+            "encode",
+            "input.png",
+            "output.png",
+            "--input",
+            "secret",
+            "--counter",
+            "10",
+        ]);
+        assert!(err.is_err(), "--counter without key/nonce must error");
+    }
+
+    #[test]
+    fn parses_decode_with_output_file()
+    {
+        let cli = Cli::try_parse_from([
+            "cloakpng",
+            "decode",
+            "payload.png",
+            "--output",
+            "message.txt",
+        ])
+        .expect("expected decode command");
+
+        match cli.command
+        {
+            Command::Decode(args) =>
+            {
+                assert_eq!(args.input.as_ref(), Path::new("payload.png"));
+                assert_eq!(
+                    args.output_text.as_deref(),
+                    Some(Path::new("message.txt"))
+                );
+                assert!(args.encryption.is_none());
+            },
+            other => panic!("expected decode command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_decode_with_encryption()
+    {
+        let cli = Cli::try_parse_from([
+            "cloakpng",
+            "decode",
+            "payload.png",
+            "--key-file",
+            "key.bin",
+            "--nonce-file",
+            "nonce.bin",
+        ])
+        .expect("expected decode command");
+
+        match cli.command
+        {
+            Command::Decode(args) =>
+            {
+                let encryption = args
+                    .encryption
+                    .as_ref()
+                    .expect("encryption flags should be parsed");
+                assert_eq!(encryption.key_file.as_ref(), Path::new("key.bin"));
+                assert_eq!(
+                    encryption.nonce_file.as_ref(),
+                    Path::new("nonce.bin")
+                );
+                assert_eq!(encryption.counter, 0);
+            },
+            other => panic!("expected decode command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_capacity_command()
+    {
+        let cli = Cli::try_parse_from(["cloakpng", "cap", "image.png"])
+            .expect("expected capacity command");
+
+        match cli.command
+        {
+            Command::Cap(args) =>
+            {
+                assert_eq!(args.input.as_ref(), Path::new("image.png"));
+            },
+            other => panic!("expected capacity command, got {other:?}"),
+        }
     }
 }

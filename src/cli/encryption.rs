@@ -12,14 +12,24 @@ use crate::crypto::{
 };
 
 /// Encryption arguments shared by encode/decode commands.
-#[derive(Args)]
+#[derive(Debug, Args)]
 pub(super) struct EncryptionArgs
 {
     /// File containing a raw (32-byte) or hex-encoded key.
-    #[arg(long = "key-file", value_name = "PATH", requires = "nonce_file", required = false)]
+    #[arg(
+        long = "key-file",
+        value_name = "PATH",
+        requires = "nonce_file",
+        required = false
+    )]
     pub(super) key_file: Box<Path>,
     /// File containing a raw (12-byte) or hex-encoded nonce.
-    #[arg(long = "nonce-file", value_name = "PATH", requires = "key_file", required = false)]
+    #[arg(
+        long = "nonce-file",
+        value_name = "PATH",
+        requires = "key_file",
+        required = false
+    )]
     pub(super) nonce_file: Box<Path>,
     /// Initial block counter.
     #[arg(
