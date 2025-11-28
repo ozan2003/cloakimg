@@ -137,15 +137,16 @@ fn parse_hex_array<const N: usize>(
 /// when the file length is not equal to the expected length.
 fn parse_crypto_file<const N: usize>(
     field: &str,
-    path: &Path,
+    path: impl AsRef<Path>,
 ) -> Result<[u8; N], CryptoError>
 {
-    let bytes =
-        std::fs::read(path).map_err(|source| CryptoError::KeyMaterialIo {
+    let bytes = std::fs::read(path.as_ref()).map_err(|source| {
+        CryptoError::KeyMaterialIo {
             field: field.into(),
-            path: path.into(),
+            path: path.as_ref().into(),
             source,
-        })?;
+        }
+    })?;
 
     // Treat the bytes as binaty first.
     if bytes.len() == N
