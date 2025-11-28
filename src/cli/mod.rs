@@ -20,6 +20,7 @@ use self::payload::{
 use crate::crypto::CryptoError;
 use crate::stego::{
     MAX_REASONABLE_MESSAGE_SIZE, StegoError, embed_text, extract_text,
+    max_message_size,
 };
 
 /// Errors that can be emitted while handling the CLI
@@ -69,9 +70,9 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode text with RGB LSB steganography for files",
+    about = "Encode and decode text with RGB LSB steganography into images",
     after_help = formatcp!(
-        "Maximum reasonable message size is {} MiB",
+        "Maximum supported payload size is {} MiB",
         MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
     )
 )]
@@ -87,9 +88,10 @@ enum Command
 {
     Encode(EncodingArgs),
     Decode(DecodingArgs),
+    Cap(CapacityArgs),
 }
 
-/// Arguments for the encoding
+/// Embed a message into an image.
 #[derive(Args)]
 #[command(group(
     ArgGroup::new("message")
@@ -98,14 +100,14 @@ enum Command
 ))]
 struct EncodingArgs
 {
-    /// Image that will receive the hidden text.
+    /// Image that will receive the text.
     input: Box<Path>,
-    /// Destination path for the modified image.
+    /// Output path for the embedded image.
     output: Box<Path>,
-    /// Text to embed. Mutually exclusive with --text-file.
+    /// Text to embed.
     #[arg(short = 'i', long = "input", value_name = "TEXT")]
     text: Option<String>,
-    /// Path to a UTF-8 text file to embed.
+    /// Path to an UTF-8 text file to embed.
     #[arg(short = 'f', long = "file", value_name = "PATH")]
     text_file: Option<Box<Path>>,
     /// Optional encryption parameters.
@@ -113,11 +115,11 @@ struct EncodingArgs
     encryption: Option<EncryptionArgs>,
 }
 
-/// Arguments for the decoding
+/// Extract a message from an image.
 #[derive(Args)]
 struct DecodingArgs
 {
-    /// Image that contains hidden text.
+    /// Image that contains the text.
     input: Box<Path>,
     /// Optional file to write the decoded text. Prints to stdout when omitted.
     #[arg(long = "output", short = 'o', value_name = "PATH")]
@@ -125,6 +127,14 @@ struct DecodingArgs
     /// Optional encryption parameters.
     #[command(flatten)]
     encryption: Option<EncryptionArgs>,
+}
+
+/// Calculate the maximum possible payload size for an image.
+#[derive(Args)]
+struct CapacityArgs
+{
+    /// Image to calculate the possible payload size for.
+    input: Box<Path>,
 }
 
 /// Parses CLI arguments and executes the requested operation.
@@ -140,6 +150,7 @@ pub fn run() -> Result<(), AppError>
     {
         Command::Encode(mut args) => handle_encode(&mut args),
         Command::Decode(args) => handle_decode(args),
+        Command::Cap(args) => handle_capacity(&args),
     }
 }
 
@@ -210,6 +221,27 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     {
         // Write the message to stdout if no file path is provided
         println!("{message}");
+    }
+
+    Ok(())
+}
+
+/// Handles the capacity calculation of a message for an image.
+///
+/// # Errors
+///
+/// Returns [`AppError`] when reading the image.
+fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
+{
+    let image = load_image(&args.input)?;
+    let capacity = max_message_size(&image);
+    println!("Maximum possible payload size: {} bytes", capacity);
+    if capacity > MAX_REASONABLE_MESSAGE_SIZE
+    {
+        println!(
+            "Warning: payload size will be capped at the maximum supported size of {} MiB",
+            MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
+        );
     }
 
     Ok(())

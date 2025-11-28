@@ -3,6 +3,7 @@
 //! Normalizes extensions, loads RGB buffers, and writes files with the
 //! appropriate encoder.
 use std::fs::File;
+use std::io::{Error, ErrorKind};
 use std::path::Path;
 
 use image::codecs::bmp::BmpEncoder;
@@ -34,6 +35,12 @@ pub(super) fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
 pub(super) fn load_image<P: AsRef<Path>>(path: P)
 -> Result<RgbImage, AppError>
 {
+    if path.as_ref().is_dir()
+    {
+        let message = format!("{} is a directory", path.as_ref().display());
+        return Err(AppError::Io(Error::new(ErrorKind::IsADirectory, message)));
+    }
+
     Ok(image::open(path.as_ref())?.into_rgb8())
 }
 
