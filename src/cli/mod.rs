@@ -239,7 +239,8 @@ fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
     if capacity > MAX_REASONABLE_MESSAGE_SIZE
     {
         println!(
-            "Warning: payload size will be capped at the maximum supported size of {} MiB",
+            "Warning: payload size will be capped at the maximum supported \
+             size of {} MiB",
             MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
         );
     }
