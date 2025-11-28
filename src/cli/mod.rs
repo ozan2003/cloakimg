@@ -22,22 +22,6 @@ use crate::stego::{
     MAX_REASONABLE_MESSAGE_SIZE, StegoError, embed_text, extract_text,
 };
 
-/// Parses CLI arguments and executes the requested operation.
-///
-/// # Errors
-///
-/// Returns [`AppError`] when reading or writing files, decoding images, or
-/// running steganography routines fails.
-pub fn run() -> Result<(), AppError>
-{
-    let cli = Cli::parse();
-    match cli.command
-    {
-        Command::Encode(mut args) => handle_encode(&mut args),
-        Command::Decode(args) => handle_decode(args),
-    }
-}
-
 /// Errors that can be emitted while handling the CLI
 #[derive(Debug, Error)]
 pub enum AppError
@@ -141,6 +125,22 @@ struct DecodingArgs
     /// Optional encryption parameters.
     #[command(flatten)]
     encryption: Option<EncryptionArgs>,
+}
+
+/// Parses CLI arguments and executes the requested operation.
+///
+/// # Errors
+///
+/// Returns [`AppError`] when reading or writing files, decoding images, or
+/// running steganography routines fails.
+pub fn run() -> Result<(), AppError>
+{
+    let cli = Cli::parse();
+    match cli.command
+    {
+        Command::Encode(mut args) => handle_encode(&mut args),
+        Command::Decode(args) => handle_decode(args),
+    }
 }
 
 /// Handles the encoding of a message into an image.
