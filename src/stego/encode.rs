@@ -88,7 +88,7 @@ struct PayloadBits<'message>
     msg_length_bit_index: u8,
     /// The index of the next byte across the message
     msg_byte_index: usize,
-    /// The index of the next bit in the current byte
+    /// The index of the bit in the current byte
     bit_index: u8,
 }
 
@@ -145,5 +145,15 @@ impl Iterator for PayloadBits<'_>
     fn next(&mut self) -> Option<Self::Item>
     {
         self.next_bit()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>)
+    {
+        (
+            HEADER_BITS as usize,
+            self.msg_length
+                .checked_mul(8)
+                .and_then(|l| l.checked_add(HEADER_BITS as usize)),
+        )
     }
 }
