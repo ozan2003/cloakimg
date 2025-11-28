@@ -66,7 +66,7 @@ pub enum AppError
 }
 
 /// The main CLI parser
-#[derive(Debug, Parser)]
+#[derive(Parser)]
 #[command(
     author,
     version,
@@ -83,7 +83,7 @@ struct Cli
 }
 
 /// The main command
-#[derive(Debug, Subcommand)]
+#[derive(Subcommand)]
 enum Command
 {
     Encode(EncodingArgs),
@@ -92,7 +92,7 @@ enum Command
 }
 
 /// Embed a message into an image.
-#[derive(Debug, Args)]
+#[derive(Args)]
 #[command(group(
     ArgGroup::new("message")
         .required(true)
@@ -116,7 +116,7 @@ struct EncodingArgs
 }
 
 /// Extract a message from an image.
-#[derive(Debug, Args)]
+#[derive(Args)]
 struct DecodingArgs
 {
     /// Image that contains the text.
@@ -130,7 +130,7 @@ struct DecodingArgs
 }
 
 /// Calculate the maximum possible payload size for an image.
-#[derive(Debug, Args)]
+#[derive(Args)]
 struct CapacityArgs
 {
     /// Image to calculate the possible payload size for.
@@ -251,11 +251,94 @@ fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
 #[cfg(test)]
 mod tests
 {
+    use std::fmt::{Debug, Formatter, Result};
     use std::path::Path;
 
     use clap::{CommandFactory, Parser};
 
     use super::*;
+
+    // Debug impls are only needed in tests
+    impl Debug for Cli
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            write!(f, "Cli {{ command: {:?} }}", self.command)
+        }
+    }
+
+    impl Debug for Command
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            match self
+            {
+                Self::Encode(args) => f
+                    .debug_tuple("Command::Encode")
+                    .field(args)
+                    .finish(),
+                Self::Decode(args) => f
+                    .debug_tuple("Command::Decode")
+                    .field(args)
+                    .finish(),
+                Self::Cap(args) => f
+                    .debug_tuple("Command::Cap")
+                    .field(args)
+                    .finish(),
+            }
+        }
+    }
+
+    impl Debug for EncryptionArgs
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            write!(
+                f,
+                "EncryptionArgs {{ key_file: {:?}, nonce_file: {:?}, counter: \
+                 {:?} }}",
+                self.key_file, self.nonce_file, self.counter
+            )
+        }
+    }
+
+    impl Debug for EncodingArgs
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            write!(
+                f,
+                "EncodingArgs {{ input: {:?}, output: {:?}, text: {:?}, \
+                 text_file: {:?}, encryption: {:?} }}",
+                self.input,
+                self.output,
+                self.text,
+                self.text_file,
+                self.encryption
+            )
+        }
+    }
+
+    impl Debug for DecodingArgs
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            write!(
+                f,
+                "DecodingArgs {{ input: {:?}, output_text: {:?}, encryption: \
+                 {:?} }}",
+                self.input, self.output_text, self.encryption
+            )
+        }
+    }
+
+    impl Debug for CapacityArgs
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> Result
+        {
+            write!(f, "CapacityArgs {{ input: {:?} }}", self.input)
+        }
+    }
 
     #[test]
     fn should_reject_different_input_formats()

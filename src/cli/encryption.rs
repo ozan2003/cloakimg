@@ -12,7 +12,7 @@ use crate::crypto::{
 };
 
 /// Encryption arguments shared by encode/decode commands.
-#[derive(Debug, Args)]
+#[derive(Args)]
 pub(super) struct EncryptionArgs
 {
     /// File containing a raw (32-byte) or hex-encoded key.
