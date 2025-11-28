@@ -14,14 +14,13 @@
 //! # Errors
 //!
 //! Returns [`StegoError`] when embedding or extracting text fails.
-use image::RgbImage;
-use thiserror::Error;
-
 mod decode;
 mod encode;
 
 pub use decode::extract_text;
 pub use encode::embed_text;
+use image::RgbImage;
+use thiserror::Error;
 
 /// Bit length of the payload length header
 const HEADER_BITS: usize = 32;
