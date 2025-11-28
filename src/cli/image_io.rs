@@ -89,7 +89,7 @@ pub(super) fn write_image<P: AsRef<Path>>(
                 ExtendedColorType::Rgb8,
             )?;
         },
-        Some("tiff") =>
+        Some("tiff" | "tif") =>
         {
             let encoder = TiffEncoder::new(&mut file);
             encoder.write_image(
