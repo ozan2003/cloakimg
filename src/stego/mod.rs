@@ -160,7 +160,7 @@ mod tests
         const WIDTH: u32 = 64;
         const HEIGHT: u32 = 64;
 
-        let mut rng_data = vec![0u8; WIDTH as usize * HEIGHT as usize * 3];
+        let mut rng_data = vec![0; WIDTH as usize * HEIGHT as usize * 3];
         fill(rng_data.as_mut_slice());
 
         let mut image = RgbImage::from_raw(WIDTH, HEIGHT, rng_data)
