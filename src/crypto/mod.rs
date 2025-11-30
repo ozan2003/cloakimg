@@ -4,7 +4,7 @@ mod cipher;
 
 use std::path::Path;
 
-pub use aes::{AES_BLOCK_SIZE, AES_KEY_SIZE, AES_NONCE_SIZE, Aes128Ctr};
+pub use aes::{AES_BLOCK_SIZE, AES_KEY_SIZE, AES_NONCE_SIZE, AesCtr};
 pub use cipher::Cipher;
 use thiserror::Error;
 

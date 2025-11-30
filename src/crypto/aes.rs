@@ -73,7 +73,7 @@ const S_BOX: [u8; 256] = [
 /// the provided counter seeds the least significant 32 bits (big-endian). Each
 /// consumed block increments the 32-bit counter with wrapping semantics.
 #[derive(Clone)]
-pub struct Aes128Ctr
+pub struct AesCtr
 {
     round_keys: [u32; AES_EXPANDED_WORDS],
     counter_block: [u8; AES_BLOCK_SIZE],
@@ -81,7 +81,7 @@ pub struct Aes128Ctr
     position: usize,
 }
 
-impl Aes128Ctr
+impl AesCtr
 {
     /// Builds an AES-128-CTR instance backed by the FIPS 197 $5 AES round
     /// function and the SP 800-38A $6.5 counter layout.
@@ -139,7 +139,7 @@ impl Aes128Ctr
     }
 }
 
-impl Cipher for Aes128Ctr
+impl Cipher for AesCtr
 {
     /// Encrypts the supplied plaintext and returns the ciphertext by `XOR`-ing
     /// the `CTR` keystream with the plaintext.
@@ -398,7 +398,7 @@ mod tests
         ];
 
         // Cross-checks our CTR keystream against OpenSSL's AES-128-CTR output.
-        let mut cipher = Aes128Ctr::new(&key, &nonce, 0);
+        let mut cipher = AesCtr::new(&key, &nonce, 0);
         let ciphertext = cipher.encrypt(plaintext);
         assert_eq!(ciphertext, expected);
     }
@@ -414,10 +414,10 @@ mod tests
         for len in [0, 1, 16, 31, 64, 128]
         {
             let plaintext = vec![0xAA; len];
-            let mut encryptor = Aes128Ctr::new(&key, &nonce, 42);
+            let mut encryptor = AesCtr::new(&key, &nonce, 42);
             let ciphertext = encryptor.encrypt(&plaintext);
 
-            let mut decryptor = Aes128Ctr::new(&key, &nonce, 42);
+            let mut decryptor = AesCtr::new(&key, &nonce, 42);
             let recovered = decryptor.decrypt(&ciphertext);
             assert_eq!(plaintext, recovered);
         }

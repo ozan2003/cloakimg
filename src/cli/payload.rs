@@ -13,7 +13,7 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
-use crate::crypto::{Aes128Ctr, Cipher, CryptoError};
+use crate::crypto::{AesCtr, Cipher, CryptoError};
 
 /// Resolves the message to embed from the command line arguments.
 ///
@@ -58,8 +58,7 @@ pub(super) fn try_encrypt_message(
 ) -> Result<String, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher =
-        Aes128Ctr::new(&context.key, &context.nonce, context.counter);
+    let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
     Ok(encrypt_with_cipher(message, &mut cipher))
 }
 
@@ -84,8 +83,7 @@ pub(super) fn try_decrypt_message(
 ) -> Result<String, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher =
-        Aes128Ctr::new(&context.key, &context.nonce, context.counter);
+    let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
     decrypt_with_cipher(payload, &mut cipher)
 }
 
