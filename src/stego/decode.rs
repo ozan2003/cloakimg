@@ -50,6 +50,13 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
     let declared_bytes = {
         // Construct the length bits from the first HEADER_BITS bits
         let mut length_bits: u32 = 0;
+        const {
+            assert!(
+                HEADER_BITS <= u32::BITS as _,
+                "Header bit count must fit in a u32"
+            );
+        }
+
         for _ in 0..HEADER_BITS
         {
             let bit = bit_iter

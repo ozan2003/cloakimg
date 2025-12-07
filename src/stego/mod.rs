@@ -24,6 +24,14 @@ use thiserror::Error;
 
 /// Bit length of the payload length header
 const HEADER_BITS: usize = 30;
+const _: () = const {
+    // I couldn't find a way w/o hardcoding the type
+    assert!(
+        HEADER_BITS <= usize::BITS as _,
+        "Bit count must fit in a usize"
+    );
+};
+
 /// Maximum value representable by the payload length header in bytes
 const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
@@ -238,10 +246,15 @@ mod tests
     fn max_capacity_message()
     {
         let mut image = RgbImage::from_pixel(32, 32, Rgb([0, 0, 0]));
-        // 32*32*3 = 3072 bits - 32 header = 3040 bits = 380 bytes
+
         let max_len =
             max_message_size(&image).expect("failed to compute capacity");
-        assert_eq!(max_len, 380);
+        let capacity_bits =
+            capacity_bits_for_dimensions(image.width(), image.height())
+                .expect("failed to compute channel capacity");
+
+        let expected_bytes = (capacity_bits.saturating_sub(HEADER_BITS)) / 8;
+        assert_eq!(max_len, expected_bytes);
 
         let message = "a".repeat(max_len);
         embed_text(&mut image, &message)
