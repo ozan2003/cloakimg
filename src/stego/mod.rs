@@ -23,13 +23,23 @@ use image::RgbImage;
 use thiserror::Error;
 
 /// Bit length of the payload length header
-const HEADER_BITS: usize = 32;
-/// Maximum value representable by the payload length header
+const HEADER_BITS: usize = 30;
+/// Maximum value representable by the payload length header in bytes
 const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
 /// Maximum reasonable message size in bytes
 // Messages exceeding this size are considered unreasonable
-pub const MAX_REASONABLE_MESSAGE_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
+pub const MAX_REASONABLE_MSG_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
+
+// The reasonable message size cannot be enforced if it exceeds the payload
+// max length
+const _: () = const {
+    assert!(
+        MAX_REASONABLE_MSG_SIZE <= PAYLOAD_MAX_LEN,
+        "Max reasonable message size is impossible to violate if it exceeds \
+         the payload max length"
+    );
+};
 
 /// Errors that can be emitted while embedding or extracting text
 #[derive(Debug, Error)]
@@ -75,7 +85,7 @@ pub enum StegoError
     /// The payload size is too large to fit in the image
     #[error(
         "declared payload size of {declared_bytes} bytes exceeds reasonable \
-         limit of {MAX_REASONABLE_MESSAGE_SIZE} bytes"
+         limit of {MAX_REASONABLE_MSG_SIZE} bytes"
     )]
     UnreasonablePayloadSize
     {

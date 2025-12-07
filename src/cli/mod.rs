@@ -19,7 +19,7 @@ use self::payload::{
 };
 use crate::crypto::CryptoError;
 use crate::stego::{
-    MAX_REASONABLE_MESSAGE_SIZE, StegoError, embed_text, extract_text,
+    MAX_REASONABLE_MSG_SIZE, StegoError, embed_text, extract_text,
     max_message_size,
 };
 
@@ -73,7 +73,7 @@ pub enum AppError
     about = "Encode and decode text with RGB LSB steganography into images",
     after_help = formatcp!(
         "Maximum supported payload size is {} MiB",
-        MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
+        MAX_REASONABLE_MSG_SIZE / (1024 * 1024)
     )
 )]
 struct Cli
@@ -236,12 +236,12 @@ fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
     let image = load_image(&args.input)?;
     let capacity = max_message_size(&image);
     println!("Maximum possible payload size: {} bytes", capacity);
-    if capacity > MAX_REASONABLE_MESSAGE_SIZE
+    if capacity > MAX_REASONABLE_MSG_SIZE
     {
         println!(
             "Warning: payload size will be capped at the maximum supported \
              size of {} MiB",
-            MAX_REASONABLE_MESSAGE_SIZE / (1024 * 1024)
+            MAX_REASONABLE_MSG_SIZE / (1024 * 1024)
         );
     }
 

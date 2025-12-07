@@ -8,7 +8,7 @@
 use image::{Pixel, RgbImage};
 
 use super::{
-    HEADER_BITS, MAX_REASONABLE_MESSAGE_SIZE, StegoError, channel_capacity_bits,
+    HEADER_BITS, MAX_REASONABLE_MSG_SIZE, StegoError, channel_capacity_bits,
 };
 
 /// Extracts UTF-8 text previously embedded with [`embed_text`] from the
@@ -65,7 +65,7 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
             .map_err(StegoError::PayloadLengthParseError)?
     };
 
-    if declared_bytes > MAX_REASONABLE_MESSAGE_SIZE
+    if declared_bytes > MAX_REASONABLE_MSG_SIZE
     {
         return Err(StegoError::UnreasonablePayloadSize { declared_bytes });
     }
