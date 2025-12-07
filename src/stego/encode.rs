@@ -45,7 +45,7 @@ pub fn embed_text(image: &mut RgbImage, message: &str)
         });
     }
 
-    let total_available_bits = channel_capacity_bits(image);
+    let total_available_bits = channel_capacity_bits(image)?;
     // HEADER_BITS is reserved for the payload length, the rest belongs to the
     // payload
     let payload_available_bytes =

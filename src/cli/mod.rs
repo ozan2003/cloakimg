@@ -234,7 +234,7 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
 {
     let image = load_image(&args.input)?;
-    let capacity = max_message_size(&image);
+    let capacity = max_message_size(&image)?;
     println!("Maximum possible payload size: {} bytes", capacity);
     if capacity > MAX_REASONABLE_MSG_SIZE
     {

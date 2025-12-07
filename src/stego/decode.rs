@@ -35,7 +35,7 @@ use super::{
 /// Panics if the length bits are too large to fit in a usize.
 pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
 {
-    let available_bits = channel_capacity_bits(image);
+    let available_bits = channel_capacity_bits(image)?;
     if available_bits < HEADER_BITS
     {
         return Err(StegoError::MissingHeader { available_bits });
@@ -43,7 +43,6 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
 
     let mut bit_iter = image
         .pixels()
-        // ignore alpha channel
         .flat_map(Pixel::channels)
         // just the lsb
         .map(|channel| channel & 1);

@@ -103,22 +103,55 @@ pub enum StegoError
     /// The payload length is too large to fit in a to an int
     #[error(transparent)]
     PayloadLengthParseError(#[from] std::num::TryFromIntError),
+
+    /// The image dimensions overflow the supported channel capacity
+    #[error(
+        "image dimensions of {width}x{height} pixels exceed supported capacity"
+    )]
+    ImageCapacityOverflow
+    {
+        width: u32, height: u32
+    },
 }
 
 /// Returns the maximum message size (in bytes) that can be embedded in the
 /// given image.
-#[must_use]
-pub fn max_message_size(image: &RgbImage) -> usize
+///
+/// # Errors
+///
+/// Returns [`StegoError::ImageCapacityOverflow`] when the image dimensions are
+/// large enough to overflow the available channel count.
+pub fn max_message_size(image: &RgbImage) -> Result<usize, StegoError>
 {
-    let available_bits = channel_capacity_bits(image);
-    (available_bits.saturating_sub(HEADER_BITS)) / 8
+    let available_bits = channel_capacity_bits(image)?;
+    Ok((available_bits.saturating_sub(HEADER_BITS)) / 8)
 }
 
 /// Returns the number of bits available in the image for the payload
-fn channel_capacity_bits(image: &RgbImage) -> usize
+fn channel_capacity_bits(image: &RgbImage) -> Result<usize, StegoError>
 {
-    // 3 bits per pixel (RGB)
-    (image.width() as usize) * (image.height() as usize) * 3
+    capacity_bits_for_dimensions(image.width(), image.height())
+}
+
+/// Computes the total number of LSB carrier bits for an image of the given
+/// dimensions.
+///
+/// # Errors
+///
+/// Returns [`StegoError::ImageCapacityOverflow`] when the width/height
+/// pair would overflow the RGB channel count.
+// This function exists for testing purposes to avoid creating a new image
+// object.
+fn capacity_bits_for_dimensions(
+    width: u32,
+    height: u32,
+) -> Result<usize, StegoError>
+{
+    (width as usize)
+        .checked_mul(height as usize)
+        // 3 bits per pixel (RGB)
+        .and_then(|pixels| pixels.checked_mul(3))
+        .ok_or(StegoError::ImageCapacityOverflow { width, height })
 }
 
 #[cfg(test)]
@@ -206,7 +239,8 @@ mod tests
     {
         let mut image = RgbImage::from_pixel(32, 32, Rgb([0, 0, 0]));
         // 32*32*3 = 3072 bits - 32 header = 3040 bits = 380 bytes
-        let max_len = max_message_size(&image);
+        let max_len =
+            max_message_size(&image).expect("failed to compute capacity");
         assert_eq!(max_len, 380);
 
         let message = "a".repeat(max_len);
@@ -238,7 +272,8 @@ mod tests
             let mut rgb_image = load_fixture_rgb(path);
             let message = format!("Round trip validation for {path}");
 
-            let capacity = max_message_size(&rgb_image);
+            let capacity = max_message_size(&rgb_image)
+                .expect("failed to compute capacity");
             assert!(
                 capacity >= message.len(),
                 "fixture {path} cannot store the test payload (capacity \
@@ -262,14 +297,15 @@ mod tests
         for path in OVERSIZE_FIXTURES
         {
             let mut rgb_image = load_fixture_rgb(path);
-            let capacity = max_message_size(&rgb_image);
+            let capacity = max_message_size(&rgb_image)
+                .expect("failed to compute capacity");
             let oversized_len = capacity
                 .checked_add(1)
                 .expect("fixture capacity near usize::MAX");
             let message = "x".repeat(oversized_len);
 
             let error = embed_text(&mut rgb_image, &message)
-                .expect_err("expected over-capacity payload to be rejected");
+                .expect_err("over-capacity payload should be rejected");
 
             match error
             {
@@ -290,5 +326,25 @@ mod tests
                 other => panic!("unexpected error for {path}: {other:?}"),
             }
         }
+    }
+
+    #[test]
+    fn capacity_bits_detects_overflow()
+    {
+        let error = capacity_bits_for_dimensions(u32::MAX, u32::MAX)
+            .expect_err("overflow should be reported");
+        assert!(matches!(
+            error,
+            StegoError::ImageCapacityOverflow { width, height }
+            if width == u32::MAX && height == u32::MAX
+        ));
+    }
+
+    #[test]
+    fn capacity_bits_handles_reasonable_dimensions()
+    {
+        let bits = capacity_bits_for_dimensions(64, 32)
+            .expect("capacity calculation should succeed");
+        assert_eq!(bits, 64 * 32 * 3);
     }
 }
