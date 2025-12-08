@@ -6,7 +6,7 @@ mod image_io;
 mod payload;
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use const_format::formatcp;
@@ -102,8 +102,10 @@ struct EncodingArgs
 {
     /// Image that will receive the payload.
     input: Box<Path>,
-    /// Output path for the embedded image.
-    output: Box<Path>,
+    /// Optional output path for the embedded image. Defaults to `a.<ext>` when
+    /// omitted.
+    #[arg(short = 'o', long = "output", value_name = "PATH")]
+    output_file: Option<Box<Path>>,
     /// Payload to embed.
     #[arg(short = 't', long = "text", value_name = "TEXT")]
     text: Option<String>,
@@ -124,7 +126,7 @@ struct DecodingArgs
     /// Optional file to write the extracted data. Prints to stdout when
     /// omitted.
     #[arg(long = "output", short = 'o', value_name = "PATH")]
-    output_data: Option<Box<Path>>,
+    output_file: Option<Box<Path>>,
     /// Optional encryption parameters.
     #[command(flatten)]
     encryption: Option<EncryptionArgs>,
@@ -163,7 +165,9 @@ pub fn run() -> Result<(), AppError>
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 {
     let input_ext = normalized_extension(&args.input);
-    let output_ext = normalized_extension(&args.output);
+
+    let output_path = resolve_output_path(args, input_ext.as_deref());
+    let output_ext = normalized_extension(&output_path);
 
     if input_ext != output_ext
     {
@@ -192,7 +196,39 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
     // Embedding the message happens here
     embed_data(&mut image, &payload)?;
 
-    write_image(&image, input_ext.as_deref(), &args.output)
+    write_image(&image, input_ext.as_deref(), &output_path)
+}
+
+/// Resolves a default output path for the embedded image.
+///
+/// The default path is `a.<ext>`, where `<ext>` matches the input's extension.
+///
+/// # Arguments
+///
+/// * `args` - The encoding arguments.
+/// * `input_ext` - The extension of the input image.
+///
+/// # Returns
+///
+/// The copy of the resolved path if provided, otherwise the default path.
+fn resolve_output_path(args: &EncodingArgs, input_ext: Option<&str>)
+-> PathBuf
+{
+    const DEFAULT_OUTPUT_NAME: &str = "a";
+
+    // If provided, use it.
+    if let Some(path) = args.output_file.as_deref()
+    {
+        return PathBuf::from(path);
+    }
+
+    let mut default_path = PathBuf::from(DEFAULT_OUTPUT_NAME);
+    if let Some(extension) = input_ext
+    {
+        default_path.set_extension(extension);
+    }
+
+    default_path
 }
 
 /// Handles the decoding of a message from an image.
@@ -214,7 +250,7 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
         message
     };
 
-    if let Some(path) = args.output_data
+    if let Some(path) = args.output_file
     {
         fs::write(path, &message)?;
     }
@@ -312,7 +348,7 @@ mod tests
         {
             f.debug_struct("EncodingArgs")
                 .field("input", &self.input)
-                .field("output", &self.output)
+                .field("output", &self.output_file)
                 .field("text", &self.text)
                 .field("payload_file", &self.payload_file)
                 .field("encryption", &self.encryption)
@@ -326,7 +362,7 @@ mod tests
         {
             f.debug_struct("DecodingArgs")
                 .field("input", &self.input)
-                .field("output_data", &self.output_data)
+                .field("output_data", &self.output_file)
                 .field("encryption", &self.encryption)
                 .finish()
         }
@@ -347,7 +383,7 @@ mod tests
     {
         let mut args = EncodingArgs {
             input: Path::new("input.png").into(),
-            output: Path::new("output.bmp").into(),
+            output_file: Some(Path::new("output.bmp").into()),
             text: Some("payload".into()),
             payload_file: None,
             encryption: None,
@@ -379,6 +415,7 @@ mod tests
             "cloakpng",
             "encode",
             "input.png",
+            "-o",
             "output.png",
             "--text",
             "secret",
@@ -390,7 +427,10 @@ mod tests
             Command::Encode(args) =>
             {
                 assert_eq!(args.input.as_ref(), Path::new("input.png"));
-                assert_eq!(args.output.as_ref(), Path::new("output.png"));
+                assert_eq!(
+                    args.output_file.as_deref(),
+                    Some(Path::new("output.png"))
+                );
                 assert_eq!(args.text.as_deref(), Some("secret"));
                 assert!(args.payload_file.is_none());
                 assert!(args.encryption.is_none());
@@ -400,12 +440,27 @@ mod tests
     }
 
     #[test]
+    fn test_default_output_path()
+    {
+        let args = EncodingArgs {
+            input: Path::new("input.png").into(),
+            output_file: None,
+            text: Some("secret".into()),
+            payload_file: None,
+            encryption: None,
+        };
+        let output_path = resolve_output_path(&args, Some("png"));
+        assert_eq!(output_path, Path::new("a.png"));
+    }
+
+    #[test]
     fn parses_encode_with_payload_file()
     {
         let cli = Cli::try_parse_from([
             "cloakpng",
             "encode",
             "input.png",
+            "-o",
             "output.png",
             "--file",
             "message.txt",
@@ -417,7 +472,10 @@ mod tests
             Command::Encode(args) =>
             {
                 assert_eq!(args.input.as_ref(), Path::new("input.png"));
-                assert_eq!(args.output.as_ref(), Path::new("output.png"));
+                assert_eq!(
+                    args.output_file.as_deref(),
+                    Some(Path::new("output.png"))
+                );
                 assert!(args.text.is_none());
                 assert_eq!(
                     args.payload_file.as_deref(),
@@ -435,6 +493,7 @@ mod tests
             "cloakpng",
             "encode",
             "input.png",
+            "-o",
             "output.png",
             "--text",
             "secret",
@@ -537,7 +596,7 @@ mod tests
             {
                 assert_eq!(args.input.as_ref(), Path::new("payload.png"));
                 assert_eq!(
-                    args.output_data.as_deref(),
+                    args.output_file.as_deref(),
                     Some(Path::new("message.txt"))
                 );
                 assert!(args.encryption.is_none());

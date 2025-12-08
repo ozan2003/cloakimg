@@ -178,7 +178,7 @@ mod tests
     {
         let mut args = EncodingArgs {
             input: Path::new("input.png").into(),
-            output: Path::new("output.png").into(),
+            output_file: Some(Path::new("output.png").into()),
             text: Some("payload".into()),
             payload_file: None,
             encryption: None,
@@ -197,7 +197,7 @@ mod tests
 
         let mut args = EncodingArgs {
             input: Path::new("input.png").into(),
-            output: Path::new("output.png").into(),
+            output_file: Some(Path::new("output.png").into()),
             text: None,
             payload_file: Some(text_path.into_boxed_path()),
             encryption: None,

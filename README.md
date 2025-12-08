@@ -40,13 +40,13 @@ A command-line tool for hiding and extracting UTF-8 text/binary data in images u
 - **Hide a short note**:
 
  ```bash
- cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png -t "Meet at 19:30."
+ cloakimg encode data/tp0n3p08.png -t "Meet at 19:30." # output is "a.png"
  ```
 
 - **Embed the source code into a image**:
 
  ```bash
- cloakimg encode data/tp0n3p08.png data/tp0n3p08_source.png --file src/stego/encode.rs"
+ cloakimg encode data/tp0n3p08.png --file src/stego/encode.rs"
  ```
 
 - **Recover a message to the terminal**:
@@ -67,7 +67,7 @@ Enable authenticated callers to encrypt the payload before embedding by providin
 
 ```bash
 # Encrypt before embedding
-cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png \
+cloakimg encode data/tp0n3p08.png -o data/tp0n3p08_secret.png \
   --key-file secrets/aes.key \
   --nonce-file secrets/aes.nonce \
   --counter 1 \
