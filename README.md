@@ -11,13 +11,13 @@
 >
 > It is not recommended for use in systems where security is critical.
 
-A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB steganography.
+A command-line tool for hiding and extracting UTF-8 text/binary data in images using RGB LSB steganography.
 
 ## Features
 
-- **Encode text into images**: Uses least significant bits of RGB channels.
-- **Decode embedded text**: Recover hidden messages from compatible images.
-- **File or inline input**: Provide text directly or from a UTF-8 text file.
+- **Encode text/binary data into images**: Uses least significant bits of RGB channels.
+- **Decode embedded data**: Recover hidden messages from compatible images.
+- **File or inline input**: Provide data directly or from a file.
 - **Optional encryption**: Store a key/nonce pair in files to encrypt data before embedding.
 - **Safe error handling**: Clear error messages and non-zero exit codes on failure.
 
@@ -25,8 +25,8 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
 
  The tool is driven by subcommands:
 
-- **`encode`**: Embed text into a file.
-- **`decode`**: Extract text from a file.
+- **`encode`**: Embed data into a file.
+- **`decode`**: Extract data from a file.
 - **`cap`**: Calculate the maximum possible payload size for an image.
 
  Run the following to see the built-in help:
@@ -40,7 +40,7 @@ A command-line tool for hiding and extracting UTF-8 text in images using RGB LSB
 - **Hide a short note**:
 
  ```bash
- cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png -i "Meet at 19:30."
+ cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png -t "Meet at 19:30."
  ```
 
 - **Embed the source code into a image**:
@@ -71,7 +71,7 @@ cloakimg encode data/tp0n3p08.png data/tp0n3p08_secret.png \
   --key-file secrets/aes.key \
   --nonce-file secrets/aes.nonce \
   --counter 1 \
-  -i "Meet at 19:30."
+  -t "Meet at 19:30."
 
 # Provide the same parameters to decrypt
 cloakimg decode data/tp0n3p08_secret.png \

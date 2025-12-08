@@ -2,38 +2,35 @@
 //!
 //! Covers everything that turns user input into bytes suitable for
 //! steganography operations, embedding back and forth:
-//! * resolves CLI text sources
+//! * resolves CLI payload sources
 //! * applies optional encryption
-//! * converts between UTF-8/plaintext and steganography-ready Base64 bytes for
-//!   both encode and decode paths.
+//! * converts between inline/file sources and raw payload bytes for the embed
+//!   and extract paths.
 use std::fs;
-
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
 use crate::crypto::{AesCtr, Cipher, CryptoError};
 
-/// Resolves the message to embed from the command line arguments.
+/// Resolves the payload to embed from the command line arguments.
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading the text file, or when both text and text
+/// Returns [`AppError`] when reading the payload file, or when both text and
 /// file are provided.
 pub(super) fn resolve_message(
     args: &mut EncodingArgs,
-) -> Result<String, AppError>
+) -> Result<Vec<u8>, AppError>
 {
-    match (args.text.take(), &args.text_file)
+    match (args.text.take(), &args.payload_file)
     {
         // take the ownership of the text
-        (Some(text), None) => Ok(text),
-        (None, Some(path)) => Ok(fs::read_to_string(path)?),
+        (Some(text), None) => Ok(text.into_bytes()),
+        (None, Some(path)) => Ok(fs::read(path)?),
         // this shouldn't happen because of the mutually exclusive group
         (None, None) | (Some(_), Some(_)) => unreachable!(
             "mutually exclusive group should ensure that either text or \
-             text_file is provided"
+             payload_file is provided"
         ),
     }
 }
@@ -47,15 +44,15 @@ pub(super) fn resolve_message(
 ///
 /// # Returns
 ///
-/// The Base64 encoded encrypted message.
+/// The encrypted message bytes.
 ///
 /// # Errors
 ///
 /// Returns [`CryptoError`] when encrypting the message fails.
 pub(super) fn try_encrypt_message(
-    message: &str,
+    message: &[u8],
     encryption: &EncryptionArgs,
-) -> Result<String, CryptoError>
+) -> Result<Vec<u8>, CryptoError>
 {
     let context = encryption.context()?;
     let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
@@ -66,7 +63,7 @@ pub(super) fn try_encrypt_message(
 ///
 /// # Arguments
 ///
-/// * `payload` - The Base64 encoded encrypted message.
+/// * `payload` - The encrypted message bytes.
 /// * `encryption` - The encryption arguments.
 ///
 /// # Returns
@@ -75,16 +72,15 @@ pub(super) fn try_encrypt_message(
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when decoding the Base64 encoded message, or when
-/// decrypting the message fails.
+/// Returns [`CryptoError`] when decrypting the message fails.
 pub(super) fn try_decrypt_message(
-    payload: &str,
+    payload: &[u8],
     encryption: &EncryptionArgs,
-) -> Result<String, CryptoError>
+) -> Result<Vec<u8>, CryptoError>
 {
     let context = encryption.context()?;
     let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
-    decrypt_with_cipher(payload, &mut cipher)
+    Ok(decrypt_with_cipher(payload, &mut cipher))
 }
 
 /// Encrypts a message using an arbitrary `Cipher` implementation.
@@ -99,14 +95,10 @@ pub(super) fn try_decrypt_message(
 ///
 /// # Returns
 ///
-/// The Base64 encoded encrypted message.
-fn encrypt_with_cipher<C: Cipher>(message: &str, cipher: &mut C) -> String
+/// The encrypted message bytes.
+fn encrypt_with_cipher<C: Cipher>(message: &[u8], cipher: &mut C) -> Vec<u8>
 {
-    let ciphertext = cipher.encrypt(message.as_bytes());
-    // Encrypting the message gives us some garbled bytes that are not UTF-8
-    // encoded, since the steganography layer works on valid UTF-8 encoded bytes
-    // we need to encode it to Base64 to make it suitable for embedding.
-    BASE64_STANDARD.encode(ciphertext)
+    cipher.encrypt(message)
 }
 
 /// Decrypts a message using an arbitrary `Cipher` implementation.
@@ -116,29 +108,16 @@ fn encrypt_with_cipher<C: Cipher>(message: &str, cipher: &mut C) -> String
 ///
 /// # Arguments
 ///
-/// * `payload` - The Base64 encoded encrypted message.
+/// * `payload` - The encrypted message bytes.
 /// * `cipher` - The cipher to use.
 ///
 /// # Returns
 ///
 /// The decrypted message.
-///
-/// # Errors
-///
-/// Returns [`CryptoError`] when decoding the Base64 encoded message fails, or
-/// when the decrypted payload is not valid UTF-8.
-fn decrypt_with_cipher<C: Cipher>(
-    payload: &str,
-    cipher: &mut C,
-) -> Result<String, CryptoError>
+fn decrypt_with_cipher<C: Cipher>(ciphertext: &[u8], cipher: &mut C)
+-> Vec<u8>
 {
-    // Remove the base64 encoding to get the ciphertext.
-    let ciphertext = BASE64_STANDARD
-        .decode(payload.as_bytes())
-        .map_err(CryptoError::InvalidBase64)?;
-
-    let plaintext = cipher.decrypt(&ciphertext);
-    String::from_utf8(plaintext).map_err(CryptoError::InvalidDecryptedUtf8)
+    cipher.decrypt(ciphertext)
 }
 
 #[cfg(test)]
@@ -162,36 +141,36 @@ mod tests
             counter: 1,
         };
 
-        let plaintext = "Hello encrypted world!";
+        let plaintext = b"Hello encrypted world!";
         let encrypted = try_encrypt_message(plaintext, &encryption)
             .expect("encrypt failed");
-        assert_ne!(plaintext, encrypted);
+        assert_ne!(plaintext.as_slice(), encrypted.as_slice());
 
         let decrypted = try_decrypt_message(&encrypted, &encryption)
             .expect("decrypt failed");
-        assert_eq!(plaintext, decrypted);
+        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
     }
 
     #[test]
     fn encryption_args_are_optional()
     {
         let encryption: Option<EncryptionArgs> = None;
-        let plaintext = "No crypto involved.";
+        let plaintext = b"No crypto involved.";
 
-        let mut payload = plaintext.to_owned();
+        let mut payload = plaintext.to_vec();
         if let Some(ref encryption) = encryption
         {
             payload = try_encrypt_message(&payload, encryption)
                 .expect("encrypt failed");
         }
-        assert_eq!(plaintext, payload);
+        assert_eq!(plaintext.as_slice(), payload.as_slice());
 
         if let Some(ref encryption) = encryption
         {
             payload = try_decrypt_message(&payload, encryption)
                 .expect("decrypt failed");
         }
-        assert_eq!(plaintext, payload);
+        assert_eq!(plaintext.as_slice(), payload.as_slice());
     }
 
     #[test]
@@ -201,12 +180,12 @@ mod tests
             input: Path::new("input.png").into(),
             output: Path::new("output.png").into(),
             text: Some("payload".into()),
-            text_file: None,
+            payload_file: None,
             encryption: None,
         };
 
         let resolved = resolve_message(&mut args).expect("should resolve text");
-        assert_eq!(resolved, "payload");
+        assert_eq!(resolved, b"payload");
     }
 
     #[test]
@@ -220,12 +199,12 @@ mod tests
             input: Path::new("input.png").into(),
             output: Path::new("output.png").into(),
             text: None,
-            text_file: Some(text_path.into_boxed_path()),
+            payload_file: Some(text_path.into_boxed_path()),
             encryption: None,
         };
 
         let resolved = resolve_message(&mut args).expect("should resolve file");
-        assert_eq!(resolved, "from file");
+        assert_eq!(resolved, b"from file");
     }
 
     struct TempMaterial

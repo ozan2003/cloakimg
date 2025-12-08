@@ -1,6 +1,6 @@
-//! Steganography routines for extracting text from images.
+//! Steganography routines for extracting payload bytes from images.
 //!
-//! Implements the logic for extracting text from an image.
+//! Implements the logic for extracting payload bytes from an image.
 //!
 //! # Errors
 //!
@@ -11,7 +11,7 @@ use super::{
     HEADER_BITS, MAX_REASONABLE_MSG_SIZE, StegoError, channel_capacity_bits,
 };
 
-/// Extracts UTF-8 text previously embedded with [`embed_text`] from the
+/// Extracts the raw payload previously embedded with [`embed_text`] from the
 /// provided image.
 ///
 /// # Errors
@@ -26,14 +26,12 @@ use super::{
 /// invalid or the payload size is too large to fit in the image,
 ///
 /// [`StegoError::IncompletePayload`] when the image data ends before the
-/// payload could be fully reconstructed,
-///
-/// [`StegoError::InvalidUtf8`] when the resulting payload is not valid UTF-8.
+/// payload could be fully reconstructed.
 ///
 /// # Panics
 ///
 /// Panics if the length bits are too large to fit in a usize.
-pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
+pub fn extract_data(image: &RgbImage) -> Result<Vec<u8>, StegoError>
 {
     let available_bits = channel_capacity_bits(image)?;
     if available_bits < HEADER_BITS
@@ -93,16 +91,16 @@ pub fn extract_text(image: &RgbImage) -> Result<String, StegoError>
     let mut payload = Vec::with_capacity(declared_bytes);
     for _ in 0..declared_bytes
     {
-        let mut value: u8 = 0; // A single byte in the unicode payload
+        let mut byte: u8 = 0;
         for _ in 0..u8::BITS
         {
             let bit = bit_iter
                 .next()
                 .ok_or(StegoError::IncompletePayload)?;
-            value = (value << 1) | bit;
+            byte = (byte << 1) | bit;
         }
-        payload.push(value);
+        payload.push(byte);
     }
 
-    String::from_utf8(payload).map_err(StegoError::InvalidUtf8)
+    Ok(payload)
 }

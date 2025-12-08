@@ -1,6 +1,6 @@
-//! Steganography routines for embedding text into images.
+//! Steganography routines for embedding payload bytes into images.
 //!
-//! Provides a function for embedding text into images using RGB LSB
+//! Provides a function for embedding arbitrary data into images using RGB LSB
 //! steganography.
 //!
 //! # Format
@@ -18,8 +18,8 @@ use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 
-/// Embeds UTF-8 text inside the RGB least-significant bits of the given RGB
-/// image.
+/// Embeds arbitrary bytes inside the RGB least-significant bits of the given
+/// RGB image.
 ///
 /// # Format
 ///
@@ -34,10 +34,11 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 /// Returns [`StegoError::MessageExceedsHeaderLimit`] when the payload cannot
 /// fit in the 32-bit length header or [`StegoError::MessageTooLarge`] when the
 /// host image lacks sufficient RGB channels.
-pub fn embed_text(image: &mut RgbImage, message: &str)
--> Result<(), StegoError>
+pub fn embed_data(
+    image: &mut RgbImage,
+    payload: &[u8],
+) -> Result<(), StegoError>
 {
-    let payload = message.as_bytes();
     if payload.len() > PAYLOAD_MAX_LEN
     {
         return Err(StegoError::MessageExceedsHeaderLimit {

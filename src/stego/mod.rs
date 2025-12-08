@@ -1,7 +1,8 @@
-//! Steganography routines for embedding and extracting text from  images.
+//! Steganography routines for embedding and extracting payload bytes from
+//! images.
 //!
-//! Provides functions for embedding and extracting text from  images using
-//! RGB LSB steganography.
+//! Provides functions for embedding and extracting arbitrary bytes from images
+//! using RGB LSB steganography.
 //!
 //! # Encoding Format
 //!
@@ -17,8 +18,8 @@
 mod decode;
 mod encode;
 
-pub use decode::extract_text;
-pub use encode::embed_text;
+pub use decode::extract_data;
+pub use encode::embed_data;
 use image::RgbImage;
 use thiserror::Error;
 
@@ -103,10 +104,6 @@ pub enum StegoError
     /// The image data ended before the payload could be fully reconstructed
     #[error("image data ended before the payload could be fully reconstructed")]
     IncompletePayload,
-
-    /// The decoded payload is not valid UTF-8
-    #[error("decoded payload is not valid UTF-8")]
-    InvalidUtf8(#[from] std::string::FromUtf8Error),
 
     /// The payload length is too large to fit in a to an int
     #[error(transparent)]
@@ -199,10 +196,21 @@ mod tests
     fn round_trip_text()
     {
         let mut image = RgbImage::from_pixel(32, 32, Rgb([255, 255, 255]));
-        let message = "Secret message!";
-        embed_text(&mut image, message).expect("failed to embed text");
-        let decoded = extract_text(&image).expect("failed to extract text");
-        assert_eq!(message, decoded);
+        let message = b"Secret message!";
+        embed_data(&mut image, message).expect("failed to embed text");
+        let decoded = extract_data(&image).expect("failed to extract text");
+        assert_eq!(message, decoded.as_slice());
+    }
+
+    #[test]
+    fn round_trip_image()
+    {
+        let mut image = RgbImage::from_pixel(32, 32, Rgb([255, 255, 255]));
+        // An image instead of text
+        let payload = RgbImage::from_pixel(10, 10, Rgb([45, 45, 45]));
+        embed_data(&mut image, &payload).expect("failed to embed image");
+        let decoded = extract_data(&image).expect("failed to extract image");
+        assert_eq!(payload.into_raw(), decoded);
     }
 
     #[test]
@@ -216,20 +224,20 @@ mod tests
 
         let mut image = RgbImage::from_raw(WIDTH, HEIGHT, rng_data)
             .expect("failed to create image from raw data");
-        let message = "Test with random pixel data!";
+        let message = b"Test with random pixel data!";
 
-        embed_text(&mut image, message).expect("failed to embed text");
-        let decoded = extract_text(&image).expect("failed to extract text");
-        assert_eq!(message, decoded);
+        embed_data(&mut image, message).expect("failed to embed text");
+        let decoded = extract_data(&image).expect("failed to extract text");
+        assert_eq!(message, decoded.as_slice());
     }
 
     #[test]
     fn empty_message()
     {
         let mut image = RgbImage::from_pixel(32, 32, Rgb([128, 128, 128]));
-        embed_text(&mut image, "").expect("failed to embed text");
-        let decoded = extract_text(&image).expect("failed to extract text");
-        assert_eq!("", decoded);
+        embed_data(&mut image, b"").expect("failed to embed text");
+        let decoded = extract_data(&image).expect("failed to extract text");
+        assert_eq!(b"", decoded.as_slice());
     }
 
     #[test]
@@ -237,9 +245,10 @@ mod tests
     {
         let mut image = RgbImage::from_pixel(64, 64, Rgb([100, 100, 100]));
         let message = "Hello 世界 🦀";
-        embed_text(&mut image, message).expect("failed to embed unicode text");
-        let decoded = extract_text(&image).expect("failed to extract text");
-        assert_eq!(message, decoded);
+        embed_data(&mut image, message.as_bytes())
+            .expect("failed to embed unicode text");
+        let decoded = extract_data(&image).expect("failed to extract text");
+        assert_eq!(message.as_bytes(), decoded.as_slice());
     }
 
     #[test]
@@ -256,12 +265,12 @@ mod tests
         let expected_bytes = (capacity_bits.saturating_sub(HEADER_BITS)) / 8;
         assert_eq!(max_len, expected_bytes);
 
-        let message = "a".repeat(max_len);
-        embed_text(&mut image, &message)
+        let message = vec![b'a'; max_len];
+        embed_data(&mut image, &message)
             .expect("failed to embed max capacity text");
 
         let decoded =
-            extract_text(&image).expect("failed to extract max capacity text");
+            extract_data(&image).expect("failed to extract max capacity text");
 
         assert_eq!(message, decoded);
     }
@@ -270,8 +279,8 @@ mod tests
     fn rejects_large_payload()
     {
         let mut image = RgbImage::from_pixel(4, 4, Rgb([0, 0, 0]));
-        let message = "This is going to be too big for a 4x4 image";
-        let error = embed_text(&mut image, message)
+        let message = b"This is going to be too big for a 4x4 image";
+        let error = embed_data(&mut image, message)
             .expect_err("should reject large payload");
 
         assert!(matches!(error, StegoError::MessageTooLarge { .. }));
@@ -293,14 +302,18 @@ mod tests
                  {capacity})"
             );
 
-            embed_text(&mut rgb_image, &message).unwrap_or_else(|err| {
-                panic!("failed to embed using {path}: {err}")
-            });
+            embed_data(&mut rgb_image, message.as_bytes()).unwrap_or_else(
+                |err| panic!("failed to embed using {path}: {err}"),
+            );
 
-            let decoded = extract_text(&rgb_image).unwrap_or_else(|err| {
+            let decoded = extract_data(&rgb_image).unwrap_or_else(|err| {
                 panic!("failed to extract using {path}: {err}")
             });
-            assert_eq!(message, decoded, "round trip failed for {path}");
+            assert_eq!(
+                message.as_bytes(),
+                decoded.as_slice(),
+                "round trip failed for {path}"
+            );
         }
     }
 
@@ -315,9 +328,9 @@ mod tests
             let oversized_len = capacity
                 .checked_add(1)
                 .expect("fixture capacity near usize::MAX");
-            let message = "x".repeat(oversized_len);
+            let message = vec![b'x'; oversized_len];
 
-            let error = embed_text(&mut rgb_image, &message)
+            let error = embed_data(&mut rgb_image, &message)
                 .expect_err("over-capacity payload should be rejected");
 
             match error

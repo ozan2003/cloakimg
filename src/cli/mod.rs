@@ -19,7 +19,7 @@ use self::payload::{
 };
 use crate::crypto::CryptoError;
 use crate::stego::{
-    MAX_REASONABLE_MSG_SIZE, StegoError, embed_text, extract_text,
+    MAX_REASONABLE_MSG_SIZE, StegoError, embed_data, extract_data,
     max_message_size,
 };
 
@@ -96,20 +96,20 @@ enum Command
 #[command(group(
     ArgGroup::new("message")
         .required(true)
-        .args(["text", "text_file"])
+        .args(["text", "payload_file"])
 ))]
 struct EncodingArgs
 {
-    /// Image that will receive the text.
+    /// Image that will receive the payload.
     input: Box<Path>,
     /// Output path for the embedded image.
     output: Box<Path>,
-    /// Text to embed.
-    #[arg(short = 'i', long = "input", value_name = "TEXT")]
+    /// Payload to embed.
+    #[arg(short = 't', long = "text", value_name = "TEXT")]
     text: Option<String>,
-    /// Path to an UTF-8 text file to embed.
+    /// Path to a payload file to embed.
     #[arg(short = 'f', long = "file", value_name = "PATH")]
-    text_file: Option<Box<Path>>,
+    payload_file: Option<Box<Path>>,
     /// Optional encryption parameters.
     #[command(flatten)]
     encryption: Option<EncryptionArgs>,
@@ -119,11 +119,12 @@ struct EncodingArgs
 #[derive(Args)]
 struct DecodingArgs
 {
-    /// Image that contains the text.
+    /// Image that contains the embedded data.
     input: Box<Path>,
-    /// Optional file to write the decoded text. Prints to stdout when omitted.
+    /// Optional file to write the extracted data. Prints to stdout when
+    /// omitted.
     #[arg(long = "output", short = 'o', value_name = "PATH")]
-    output_text: Option<Box<Path>>,
+    output_data: Option<Box<Path>>,
     /// Optional encryption parameters.
     #[command(flatten)]
     encryption: Option<EncryptionArgs>,
@@ -189,7 +190,7 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
     };
 
     // Embedding the message happens here
-    embed_text(&mut image, &payload)?;
+    embed_data(&mut image, &payload)?;
 
     write_image(&image, input_ext.as_deref(), &args.output)
 }
@@ -205,7 +206,7 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     // Extract the hidden message and decrypt it only when encryption flags were
     // provided.
     let message = {
-        let mut message = extract_text(&image)?;
+        let mut message = extract_data(&image)?;
         if let Some(encryption) = args.encryption.as_ref()
         {
             message = try_decrypt_message(&message, encryption)?;
@@ -213,14 +214,16 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
         message
     };
 
-    if let Some(path) = args.output_text
+    if let Some(path) = args.output_data
     {
-        fs::write(path, message.as_bytes())?;
+        fs::write(path, &message)?;
     }
     else
     {
-        // Write the message to stdout if no file path is provided
-        println!("{message}");
+        // Write the message to stdout if no file path is provided.
+        // We fall back to lossy UTF-8 to avoid panicking on arbitrary payload
+        // bytes.
+        println!("{}", String::from_utf8_lossy(&message));
     }
 
     Ok(())
@@ -311,7 +314,7 @@ mod tests
                 .field("input", &self.input)
                 .field("output", &self.output)
                 .field("text", &self.text)
-                .field("text_file", &self.text_file)
+                .field("payload_file", &self.payload_file)
                 .field("encryption", &self.encryption)
                 .finish()
         }
@@ -323,7 +326,7 @@ mod tests
         {
             f.debug_struct("DecodingArgs")
                 .field("input", &self.input)
-                .field("output_text", &self.output_text)
+                .field("output_data", &self.output_data)
                 .field("encryption", &self.encryption)
                 .finish()
         }
@@ -346,7 +349,7 @@ mod tests
             input: Path::new("input.png").into(),
             output: Path::new("output.bmp").into(),
             text: Some("payload".into()),
-            text_file: None,
+            payload_file: None,
             encryption: None,
         };
 
@@ -377,7 +380,7 @@ mod tests
             "encode",
             "input.png",
             "output.png",
-            "--input",
+            "--text",
             "secret",
         ])
         .expect("expected encode command");
@@ -389,7 +392,7 @@ mod tests
                 assert_eq!(args.input.as_ref(), Path::new("input.png"));
                 assert_eq!(args.output.as_ref(), Path::new("output.png"));
                 assert_eq!(args.text.as_deref(), Some("secret"));
-                assert!(args.text_file.is_none());
+                assert!(args.payload_file.is_none());
                 assert!(args.encryption.is_none());
             },
             other => panic!("expected encode command, got {other:?}"),
@@ -397,7 +400,7 @@ mod tests
     }
 
     #[test]
-    fn parses_encode_with_text_file()
+    fn parses_encode_with_payload_file()
     {
         let cli = Cli::try_parse_from([
             "cloakpng",
@@ -417,7 +420,7 @@ mod tests
                 assert_eq!(args.output.as_ref(), Path::new("output.png"));
                 assert!(args.text.is_none());
                 assert_eq!(
-                    args.text_file.as_deref(),
+                    args.payload_file.as_deref(),
                     Some(Path::new("message.txt"))
                 );
             },
@@ -433,7 +436,7 @@ mod tests
             "encode",
             "input.png",
             "output.png",
-            "--input",
+            "--text",
             "secret",
             "--key-file",
             "key.bin",
@@ -478,7 +481,7 @@ mod tests
             "encode",
             "input.png",
             "output.png",
-            "--input",
+            "--text",
             "secret",
             "--key-file",
             "key.bin",
@@ -493,7 +496,7 @@ mod tests
             "encode",
             "input.png",
             "output.png",
-            "--input",
+            "--text",
             "secret",
             "--nonce-file",
             "nonce.bin",
@@ -508,7 +511,7 @@ mod tests
             "encode",
             "input.png",
             "output.png",
-            "--input",
+            "--text",
             "secret",
             "--counter",
             "10",
@@ -534,7 +537,7 @@ mod tests
             {
                 assert_eq!(args.input.as_ref(), Path::new("payload.png"));
                 assert_eq!(
-                    args.output_text.as_deref(),
+                    args.output_data.as_deref(),
                     Some(Path::new("message.txt"))
                 );
                 assert!(args.encryption.is_none());
