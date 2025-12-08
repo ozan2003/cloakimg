@@ -85,4 +85,3 @@ Mismatched keys, nonces, or counters will prevent successful decryption. Ensure 
 
 - Supported image formats: PNG, BMP, TIFF, PPM.
 - Available capacity depends on image dimensions and encoding details; very long messages may not fit into small images.
-- The tool expects valid UTF-8 text for both input and output.
