@@ -1,15 +1,11 @@
 # cloakimg
 
 > [!CAUTION]  
-> This tool uses an hand-written implementation of various cryptographic primitives.
+> This tool is not audited for security.
 >
 > It is not recommended for production use.
 >
-> It is not audited for security.
->
 > It is not recommended for use in critical systems.
->
-> It is not recommended for use in systems where security is critical.
 
 A command-line tool for hiding and extracting UTF-8 text/binary data in images using RGB LSB steganography.
 
