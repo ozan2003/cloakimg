@@ -1,10 +1,12 @@
 //! Crypto routines for the steganography tool.
-mod aes;
+mod chacha20;
 mod cipher;
 
 use std::path::Path;
 
-pub use aes::{AES_BLOCK_SIZE, AES_KEY_SIZE, AES_NONCE_SIZE, AesCtr};
+pub use chacha20::{
+    CHACHA20_KEY_SIZE, CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE, ChaCha20Cipher,
+};
 pub use cipher::Cipher;
 use thiserror::Error;
 
@@ -55,4 +57,12 @@ pub enum CryptoError
         #[source]
         source: std::io::Error,
     },
+
+    /// AEAD encryption failed
+    #[error("encryption failed")]
+    EncryptionFailed,
+
+    /// AEAD decryption failed
+    #[error("decryption failed")]
+    DecryptionFailed,
 }

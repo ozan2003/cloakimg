@@ -1,6 +1,7 @@
 //! Provides a trait for cryptographic ciphers.
 //!
 //! All ciphers implemented must adhere to this trait.
+use super::CryptoError;
 
 /// A trait for cryptographic ciphers for encryption/decryption.
 pub trait Cipher
@@ -11,18 +12,20 @@ pub trait Cipher
     ///
     /// * `plaintext` - Data that will be encrypted accordingly to the cipher.
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// The ciphertext.
-    fn encrypt(&mut self, plaintext: &[u8]) -> Vec<u8>;
+    /// Returns [`CryptoError`] when encryption fails.
+    fn encrypt(&mut self, plaintext: &[u8]) -> Result<Vec<u8>, CryptoError>;
+
     /// Decrypts the supplied ciphertext and returns the plaintext.
     ///
     /// # Arguments
     ///
     /// * `ciphertext` - Data that was produced by the cipher's encryption.
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// The plaintext.
-    fn decrypt(&mut self, ciphertext: &[u8]) -> Vec<u8>;
+    /// Returns [`CryptoError`] when decryption fails or authentication does not
+    /// verify (for AEADs).
+    fn decrypt(&mut self, ciphertext: &[u8]) -> Result<Vec<u8>, CryptoError>;
 }

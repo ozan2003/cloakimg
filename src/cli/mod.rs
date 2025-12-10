@@ -337,7 +337,6 @@ mod tests
             f.debug_struct("EncryptionArgs")
                 .field("key_file", &self.key_file)
                 .field("nonce_file", &self.nonce_file)
-                .field("counter", &self.counter)
                 .finish()
         }
     }
@@ -501,8 +500,6 @@ mod tests
             "key.bin",
             "--nonce-file",
             "nonce.bin",
-            "--counter",
-            "42",
         ])
         .expect("expected encode command");
 
@@ -519,7 +516,6 @@ mod tests
                     encryption.nonce_file.as_ref(),
                     Path::new("nonce.bin")
                 );
-                assert_eq!(encryption.counter, 42);
             },
             other => panic!("expected encode command, got {other:?}"),
         }
@@ -564,18 +560,6 @@ mod tests
             err.is_err(),
             "providing --nonce-file without --key-file must error"
         );
-
-        let err = Cli::try_parse_from([
-            "cloakpng",
-            "encode",
-            "input.png",
-            "output.png",
-            "--text",
-            "secret",
-            "--counter",
-            "10",
-        ]);
-        assert!(err.is_err(), "--counter without key/nonce must error");
     }
 
     #[test]
@@ -632,7 +616,6 @@ mod tests
                     encryption.nonce_file.as_ref(),
                     Path::new("nonce.bin")
                 );
-                assert_eq!(encryption.counter, 0);
             },
             other => panic!("expected decode command, got {other:?}"),
         }

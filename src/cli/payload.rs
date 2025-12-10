@@ -10,7 +10,7 @@ use std::fs;
 
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
-use crate::crypto::{AesCtr, Cipher, CryptoError};
+use crate::crypto::{ChaCha20Cipher, Cipher, CryptoError};
 
 /// Resolves the payload to embed from the command line arguments.
 ///
@@ -55,8 +55,8 @@ pub(super) fn try_encrypt_message(
 ) -> Result<Vec<u8>, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
-    Ok(encrypt_with_cipher(message, &mut cipher))
+    let mut cipher = ChaCha20Cipher::new(&context.key, &context.nonce);
+    encrypt_with_cipher(message, &mut cipher)
 }
 
 /// Tries to decrypt the message using the provided encryption arguments.
@@ -79,8 +79,8 @@ pub(super) fn try_decrypt_message(
 ) -> Result<Vec<u8>, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher = AesCtr::new(&context.key, &context.nonce, context.counter);
-    Ok(decrypt_with_cipher(payload, &mut cipher))
+    let mut cipher = ChaCha20Cipher::new(&context.key, &context.nonce);
+    decrypt_with_cipher(payload, &mut cipher)
 }
 
 /// Encrypts a message using an arbitrary `Cipher` implementation.
@@ -96,7 +96,10 @@ pub(super) fn try_decrypt_message(
 /// # Returns
 ///
 /// The encrypted message bytes.
-fn encrypt_with_cipher<C: Cipher>(message: &[u8], cipher: &mut C) -> Vec<u8>
+fn encrypt_with_cipher<C: Cipher>(
+    message: &[u8],
+    cipher: &mut C,
+) -> Result<Vec<u8>, CryptoError>
 {
     cipher.encrypt(message)
 }
@@ -114,8 +117,10 @@ fn encrypt_with_cipher<C: Cipher>(message: &[u8], cipher: &mut C) -> Vec<u8>
 /// # Returns
 ///
 /// The decrypted message.
-fn decrypt_with_cipher<C: Cipher>(ciphertext: &[u8], cipher: &mut C)
--> Vec<u8>
+fn decrypt_with_cipher<C: Cipher>(
+    ciphertext: &[u8],
+    cipher: &mut C,
+) -> Result<Vec<u8>, CryptoError>
 {
     cipher.decrypt(ciphertext)
 }
@@ -132,13 +137,14 @@ mod tests
     #[test]
     fn encrypt_decrypt_roundtrip_via_cli_helpers()
     {
-        let key_file = TempMaterial::from_bytes(b"0001020304050607");
+        let key_file = TempMaterial::from_bytes(
+            b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        );
         let nonce_file = TempMaterial::from_bytes(b"000000000000004a00000000");
 
         let encryption = EncryptionArgs {
             key_file: key_file.boxed_path(),
             nonce_file: nonce_file.boxed_path(),
-            counter: 1,
         };
 
         let plaintext = b"Hello encrypted world!";

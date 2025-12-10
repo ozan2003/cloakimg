@@ -8,7 +8,8 @@ use clap::Args;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::crypto::{
-    AES_KEY_SIZE as KEY_SIZE, AES_NONCE_SIZE as NONCE_SIZE, CryptoError,
+    CHACHA20_KEY_SIZE as KEY_SIZE, CHACHA20_NONCE_SIZE as NONCE_SIZE,
+    CryptoError,
 };
 
 /// Encryption arguments shared by encode/decode commands.
@@ -31,14 +32,6 @@ pub(super) struct EncryptionArgs
         required = false
     )]
     pub(super) nonce_file: Box<Path>,
-    /// Initial block counter.
-    #[arg(
-        long = "counter",
-        value_name = "NUMBER",
-        default_value_t = 0,
-        requires_all = ["key_file", "nonce_file"]
-    )]
-    pub(super) counter: u32,
 }
 
 impl EncryptionArgs
@@ -49,11 +42,7 @@ impl EncryptionArgs
         let nonce =
             parse_crypto_file::<NONCE_SIZE>("--nonce-file", &self.nonce_file)?;
 
-        Ok(EncryptionContext {
-            key,
-            nonce,
-            counter: self.counter,
-        })
+        Ok(EncryptionContext { key, nonce })
     }
 }
 
@@ -62,7 +51,6 @@ pub(super) struct EncryptionContext
 {
     pub(super) key: [u8; KEY_SIZE],
     pub(super) nonce: [u8; NONCE_SIZE],
-    pub(super) counter: u32,
 }
 
 // Don't leak the encryption context to the console
@@ -73,7 +61,6 @@ impl std::fmt::Debug for EncryptionContext
         f.debug_struct("EncryptionContext")
             .field("key", &"[..]")
             .field("nonce", &"[..]")
-            .field("counter", &self.counter)
             .finish()
     }
 }
@@ -195,7 +182,6 @@ mod tests
         let encryption = EncryptionArgs {
             key_file: short_key.boxed_path(),
             nonce_file: valid_nonce.boxed_path(),
-            counter: 0,
         };
 
         let error = encryption
@@ -221,7 +207,6 @@ mod tests
         let encryption = EncryptionArgs {
             key_file: invalid_key.boxed_path(),
             nonce_file: valid_nonce.boxed_path(),
-            counter: 0,
         };
 
         let error = encryption

@@ -1,6 +1,6 @@
 [package]
 name = "cloakimg"
-version = "0.12.1"
+version = "0.13.0"
 edition = "2024"
 license-file = "LICENSE"
 
@@ -16,6 +16,7 @@ thiserror = "2.0.17"
 hex = "0.4.3"
 zeroize = { version = "1.8.2", features = ["zeroize_derive"] }
 const_format = "0.2.35"
+chacha20poly1305 = "0.10.1"
 
 [dev-dependencies]
 tempfile = "3.23.0"
