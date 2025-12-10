@@ -62,7 +62,7 @@ pub(super) fn try_encrypt_message(
     let context = encryption.context()?;
 
     // Generated every encryption session.
-    let nonce = ChaCha20Cipher::generate_nonce(); 
+    let nonce = ChaCha20Cipher::generate_nonce();
     let mut cipher = ChaCha20Cipher::new(&context.key, &nonce);
     let mut ciphertext = encrypt_with_cipher(message, &mut cipher)?;
 
@@ -176,7 +176,7 @@ mod tests
             .expect("encrypt failed");
         assert_ne!(plaintext.as_slice(), encrypted.as_slice());
 
-        // Verify the payload starts with a 12-byte nonce
+        // Verify the payload starts with a 12-byte nonce and has a 16-byte tag.
         assert!(encrypted.len() >= CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE);
 
         let decrypted = try_decrypt_message(&encrypted, &encryption)

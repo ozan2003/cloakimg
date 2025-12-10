@@ -296,6 +296,7 @@ mod tests
     use clap::{CommandFactory, Parser};
 
     use super::*;
+    use crate::crypto::{CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE};
 
     // Debug impls are only needed in tests
     impl Debug for Cli
@@ -525,32 +526,134 @@ mod tests
     }
 
     #[test]
-    fn encryption_accepts_key_file_only()
+    fn encryption_requires_key_file()
     {
-        let cli = Cli::try_parse_from([
-            "cloakpng",
-            "encode",
-            "input.png",
-            "-o",
-            "output.png",
-            "--text",
-            "secret",
-            "--key-file",
-            "key.bin",
-        ])
-        .expect("key-file should be accepted without nonce-file");
+        // Since encryption is optional, we need to test that if we try to use
+        // the encryption context without providing a key file, it errors
+        // properly
+        let encryption = EncryptionArgs { key_file: None };
 
-        match cli.command
-        {
-            Command::Encode(args) =>
-            {
-                assert!(
-                    args.encryption.is_some(),
-                    "encryption should be present"
-                );
-            },
-            other => panic!("expected encode command, got {other:?}"),
-        }
+        let error = encryption
+            .context()
+            .expect_err("encryption context should require key file");
+
+        assert!(matches!(
+            error,
+            CryptoError::MissingEncryptionField { field }
+                if field.as_ref() == "--key-file"
+        ));
+    }
+
+    #[test]
+    fn encryption_accepts_hex_encoded_key()
+    {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().expect("failed to create tempdir");
+        let key_path = dir.path().join("key.txt");
+
+        // 32 bytes = 64 hex chars
+        let hex_key =
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        std::fs::write(&key_path, hex_key).expect("failed to write key file");
+
+        let encryption = EncryptionArgs {
+            key_file: Some(key_path.into_boxed_path()),
+        };
+
+        encryption
+            .context()
+            .expect("hex-encoded key should be accepted");
+    }
+
+    #[test]
+    fn encryption_accepts_raw_binary_key()
+    {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().expect("failed to create tempdir");
+        let key_path = dir.path().join("key.bin");
+
+        // 32 random bytes
+        let raw_key = [0x42; 32];
+        std::fs::write(&key_path, raw_key).expect("failed to write key file");
+
+        let encryption = EncryptionArgs {
+            key_file: Some(key_path.into_boxed_path()),
+        };
+
+        encryption
+            .context()
+            .expect("raw binary key should be accepted");
+    }
+
+    #[test]
+    fn encryption_roundtrip_generates_nonce()
+    {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().expect("failed to create tempdir");
+        let key_path = dir.path().join("key.bin");
+
+        // Create a valid key
+        let raw_key = [0x42; 32];
+        std::fs::write(&key_path, raw_key).expect("failed to write key file");
+
+        let encryption = EncryptionArgs {
+            key_file: Some(key_path.into_boxed_path()),
+        };
+
+        let original_message = b"test message";
+
+        // Encrypt
+        let encrypted = try_encrypt_message(original_message, &encryption)
+            .expect("encryption should succeed");
+
+        // Verify nonce is embedded (12 bytes nonce + ciphertext + 16 bytes tag)
+        assert!(
+            encrypted.len() > CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE,
+            "encrypted payload should include nonce and tag"
+        );
+
+        // Decrypt
+        let decrypted = try_decrypt_message(&encrypted, &encryption)
+            .expect("decryption should succeed");
+
+        assert_eq!(decrypted, original_message);
+    }
+
+    #[test]
+    fn encryption_generates_different_nonces()
+    {
+        use tempfile::TempDir;
+
+        let dir = TempDir::new().expect("failed to create tempdir");
+        let key_path = dir.path().join("key.bin");
+
+        let raw_key = [0x42u8; 32];
+        std::fs::write(&key_path, raw_key).expect("failed to write key file");
+
+        let encryption = EncryptionArgs {
+            key_file: Some(key_path.into_boxed_path()),
+        };
+
+        let message = b"test message";
+
+        // Encrypt the same message twice
+        let encrypted1 = try_encrypt_message(message, &encryption)
+            .expect("encryption should succeed");
+        let encrypted2 = try_encrypt_message(message, &encryption)
+            .expect("encryption should succeed");
+
+        // Extract nonces (first 12 bytes)
+        let nonce1 = &encrypted1[..CHACHA20_NONCE_SIZE];
+        let nonce2 = &encrypted2[..CHACHA20_NONCE_SIZE];
+
+        // Nonces should be different even with same message and key
+        assert_ne!(
+            nonce1, nonce2,
+            "encrypting the same message twice should use different nonces"
+        );
     }
 
     #[test]
