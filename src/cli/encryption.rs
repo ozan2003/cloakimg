@@ -21,15 +21,14 @@ pub(super) struct EncryptionArgs
 impl EncryptionArgs
 {
     /// Gets the encryption context.
-    /// 
-    /// Encryption context contains the necessary information to perform encryption and decryption.
-    /// 
+    ///
     /// # Errors
-    /// 
-    /// Returns [`CryptoError`] when the key file is not provided or when the key file is not a valid hex string.
-    /// 
+    ///
+    /// Returns [`CryptoError`] when the key file is not provided or when the
+    /// key file is not a valid hex string.
+    ///
     /// # Returns
-    /// 
+    ///
     /// The encryption context.
     pub(super) fn context(&self) -> Result<EncryptionContext, CryptoError>
     {
@@ -44,6 +43,10 @@ impl EncryptionArgs
     }
 }
 
+/// Encryption context.
+///
+/// Encryption context contains the necessary information to perform encryption
+/// and decryption.
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub(super) struct EncryptionContext
 {
