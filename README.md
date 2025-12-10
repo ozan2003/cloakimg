@@ -63,22 +63,22 @@ A command-line tool for hiding and extracting UTF-8 text/binary data in images u
 
 ## Encryption (Optional)
 
-Enable authenticated callers to encrypt the payload before embedding by providing file paths that contain a key and nonce. Each file can hold either raw bytes (32 bytes for the key, 12 for the nonce) or an ASCII hex string.
+Enable authenticated callers to encrypt the payload before embedding by providing a key file. The key file can hold either raw bytes (32 bytes) or an ASCII hex string.
+
+A fresh nonce is generated for each encryption and automatically embedded in the payload. The format is: `[12-byte nonce][N-byte ciphertext][16-byte tag]`. During decryption, the nonce is extracted automatically.
 
 ```bash
 # Encrypt before embedding
 cloakimg encode data/tp0n3p08.png -o data/tp0n3p08_secret.png \
   --key-file secrets/image.key \
-  --nonce-file secrets/image.nonce \
   -t "Meet at 19:30."
 
-# Provide the same parameters to decrypt
+# Provide the same key to decrypt (nonce is extracted automatically)
 cloakimg decode data/tp0n3p08_secret.png \
-  --key-file secrets/image.key \
-  --nonce-file secrets/image.nonce
+  --key-file secrets/image.key
 ```
 
-Mismatched keys, nonces, or counters will prevent successful decryption. Ensure each nonce is unique per key.
+Mismatched keys will prevent successful decryption. Each encryption automatically uses a unique nonce.
 
 ## Limitations
 

@@ -7,42 +7,40 @@ use std::path::Path;
 use clap::Args;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::crypto::{
-    CHACHA20_KEY_SIZE as KEY_SIZE, CHACHA20_NONCE_SIZE as NONCE_SIZE,
-    CryptoError,
-};
+use crate::crypto::{CHACHA20_KEY_SIZE as KEY_SIZE, CryptoError};
 
 /// Encryption arguments shared by encode/decode commands.
 #[derive(Args)]
 pub(super) struct EncryptionArgs
 {
     /// File containing a raw (32-byte) or hex-encoded key.
-    #[arg(
-        long = "key-file",
-        value_name = "PATH",
-        requires = "nonce_file",
-        required = false
-    )]
-    pub(super) key_file: Box<Path>,
-    /// File containing a raw (12-byte) or hex-encoded nonce.
-    #[arg(
-        long = "nonce-file",
-        value_name = "PATH",
-        requires = "key_file",
-        required = false
-    )]
-    pub(super) nonce_file: Box<Path>,
+    #[arg(long = "key-file", value_name = "PATH", required = false)]
+    pub(super) key_file: Option<Box<Path>>,
 }
 
 impl EncryptionArgs
 {
+    /// Gets the encryption context.
+    /// 
+    /// Encryption context contains the necessary information to perform encryption and decryption.
+    /// 
+    /// # Errors
+    /// 
+    /// Returns [`CryptoError`] when the key file is not provided or when the key file is not a valid hex string.
+    /// 
+    /// # Returns
+    /// 
+    /// The encryption context.
     pub(super) fn context(&self) -> Result<EncryptionContext, CryptoError>
     {
-        let key = parse_crypto_file::<KEY_SIZE>("--key-file", &self.key_file)?;
-        let nonce =
-            parse_crypto_file::<NONCE_SIZE>("--nonce-file", &self.nonce_file)?;
+        let key_path = self.key_file.as_ref().ok_or_else(|| {
+            CryptoError::MissingEncryptionField {
+                field: "--key-file".into(),
+            }
+        })?;
 
-        Ok(EncryptionContext { key, nonce })
+        let key = parse_crypto_file::<KEY_SIZE>("--key-file", key_path)?;
+        Ok(EncryptionContext { key })
     }
 }
 
@@ -50,7 +48,6 @@ impl EncryptionArgs
 pub(super) struct EncryptionContext
 {
     pub(super) key: [u8; KEY_SIZE],
-    pub(super) nonce: [u8; NONCE_SIZE],
 }
 
 // Don't leak the encryption context to the console
@@ -60,7 +57,6 @@ impl std::fmt::Debug for EncryptionContext
     {
         f.debug_struct("EncryptionContext")
             .field("key", &"[..]")
-            .field("nonce", &"[..]")
             .finish()
     }
 }
@@ -177,11 +173,9 @@ mod tests
     fn rejects_invalid_file_length()
     {
         let short_key = TempMaterial::from_bytes(&[0x00]);
-        let valid_nonce = TempMaterial::from_bytes(b"000000000000004a00000000");
 
         let encryption = EncryptionArgs {
-            key_file: short_key.boxed_path(),
-            nonce_file: valid_nonce.boxed_path(),
+            key_file: Some(short_key.boxed_path()),
         };
 
         let error = encryption
@@ -202,11 +196,9 @@ mod tests
     fn rejects_non_hex_utf8_material()
     {
         let invalid_key = TempMaterial::from_bytes(b"not a valid hex string");
-        let valid_nonce = TempMaterial::from_bytes(b"000000000000004a00000000");
 
         let encryption = EncryptionArgs {
-            key_file: invalid_key.boxed_path(),
-            nonce_file: valid_nonce.boxed_path(),
+            key_file: Some(invalid_key.boxed_path()),
         };
 
         let error = encryption

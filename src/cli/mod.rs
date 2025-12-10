@@ -336,7 +336,6 @@ mod tests
         {
             f.debug_struct("EncryptionArgs")
                 .field("key_file", &self.key_file)
-                .field("nonce_file", &self.nonce_file)
                 .finish()
         }
     }
@@ -498,8 +497,6 @@ mod tests
             "secret",
             "--key-file",
             "key.bin",
-            "--nonce-file",
-            "nonce.bin",
         ])
         .expect("expected encode command");
 
@@ -511,10 +508,9 @@ mod tests
                     .encryption
                     .take()
                     .expect("encryption flags should be parsed");
-                assert_eq!(encryption.key_file.as_ref(), Path::new("key.bin"));
                 assert_eq!(
-                    encryption.nonce_file.as_ref(),
-                    Path::new("nonce.bin")
+                    encryption.key_file.as_deref(),
+                    Some(Path::new("key.bin"))
                 );
             },
             other => panic!("expected encode command, got {other:?}"),
@@ -529,37 +525,32 @@ mod tests
     }
 
     #[test]
-    fn encryption_flags_require_pairs()
+    fn encryption_accepts_key_file_only()
     {
-        let err = Cli::try_parse_from([
+        let cli = Cli::try_parse_from([
             "cloakpng",
             "encode",
             "input.png",
+            "-o",
             "output.png",
             "--text",
             "secret",
             "--key-file",
             "key.bin",
-        ]);
-        assert!(
-            err.is_err(),
-            "providing --key-file without --nonce-file must error"
-        );
+        ])
+        .expect("key-file should be accepted without nonce-file");
 
-        let err = Cli::try_parse_from([
-            "cloakpng",
-            "encode",
-            "input.png",
-            "output.png",
-            "--text",
-            "secret",
-            "--nonce-file",
-            "nonce.bin",
-        ]);
-        assert!(
-            err.is_err(),
-            "providing --nonce-file without --key-file must error"
-        );
+        match cli.command
+        {
+            Command::Encode(args) =>
+            {
+                assert!(
+                    args.encryption.is_some(),
+                    "encryption should be present"
+                );
+            },
+            other => panic!("expected encode command, got {other:?}"),
+        }
     }
 
     #[test]
@@ -598,8 +589,6 @@ mod tests
             "payload.png",
             "--key-file",
             "key.bin",
-            "--nonce-file",
-            "nonce.bin",
         ])
         .expect("expected decode command");
 
@@ -611,10 +600,9 @@ mod tests
                     .encryption
                     .as_ref()
                     .expect("encryption flags should be parsed");
-                assert_eq!(encryption.key_file.as_ref(), Path::new("key.bin"));
                 assert_eq!(
-                    encryption.nonce_file.as_ref(),
-                    Path::new("nonce.bin")
+                    encryption.key_file.as_deref(),
+                    Some(Path::new("key.bin"))
                 );
             },
             other => panic!("expected decode command, got {other:?}"),

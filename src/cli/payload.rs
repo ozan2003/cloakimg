@@ -10,7 +10,9 @@ use std::fs;
 
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
-use crate::crypto::{ChaCha20Cipher, Cipher, CryptoError};
+use crate::crypto::{
+    CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE, ChaCha20Cipher, Cipher, CryptoError,
+};
 
 /// Resolves the payload to embed from the command line arguments.
 ///
@@ -37,6 +39,9 @@ pub(super) fn resolve_message(
 
 /// Tries to encrypt the message using the provided encryption arguments.
 ///
+/// Generates a fresh nonce for each encryption and embeds it at the start
+/// of the payload: `[12-byte nonce][N-byte ciphertext][16-byte tag]`.
+///
 /// # Arguments
 ///
 /// * `message` - The message to encrypt.
@@ -44,7 +49,7 @@ pub(super) fn resolve_message(
 ///
 /// # Returns
 ///
-/// The encrypted message bytes.
+/// The encrypted message bytes with embedded nonce.
 ///
 /// # Errors
 ///
@@ -55,15 +60,26 @@ pub(super) fn try_encrypt_message(
 ) -> Result<Vec<u8>, CryptoError>
 {
     let context = encryption.context()?;
-    let mut cipher = ChaCha20Cipher::new(&context.key, &context.nonce);
-    encrypt_with_cipher(message, &mut cipher)
+
+    // Generated every encryption session.
+    let nonce = ChaCha20Cipher::generate_nonce(); 
+    let mut cipher = ChaCha20Cipher::new(&context.key, &nonce);
+    let mut ciphertext = encrypt_with_cipher(message, &mut cipher)?;
+
+    let mut out = Vec::with_capacity(CHACHA20_NONCE_SIZE + ciphertext.len());
+    out.extend_from_slice(&nonce); // Prepend nonce as it is safe to do so.
+    out.append(&mut ciphertext);
+    Ok(out)
 }
 
 /// Tries to decrypt the message using the provided encryption arguments.
 ///
+/// Expects the payload format: `[12-byte nonce][N-byte ciphertext][16-byte
+/// tag]`. The nonce is extracted from the start of the payload.
+///
 /// # Arguments
 ///
-/// * `payload` - The encrypted message bytes.
+/// * `payload` - The encrypted message bytes with embedded nonce.
 /// * `encryption` - The encryption arguments.
 ///
 /// # Returns
@@ -72,15 +88,25 @@ pub(super) fn try_encrypt_message(
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when decrypting the message fails.
+/// Returns [`CryptoError`] when decrypting the message fails or when the
+/// payload is too short to contain a nonce and tag.
 pub(super) fn try_decrypt_message(
     payload: &[u8],
     encryption: &EncryptionArgs,
 ) -> Result<Vec<u8>, CryptoError>
 {
+    if payload.len() < CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE
+    {
+        return Err(CryptoError::DecryptionFailed);
+    }
+
     let context = encryption.context()?;
-    let mut cipher = ChaCha20Cipher::new(&context.key, &context.nonce);
-    decrypt_with_cipher(payload, &mut cipher)
+    let (nonce, ciphertext) = payload
+        .split_first_chunk::<CHACHA20_NONCE_SIZE>()
+        .ok_or(CryptoError::DecryptionFailed)?;
+
+    let mut cipher = ChaCha20Cipher::new(&context.key, nonce);
+    decrypt_with_cipher(ciphertext, &mut cipher)
 }
 
 /// Encrypts a message using an arbitrary `Cipher` implementation.
@@ -140,17 +166,18 @@ mod tests
         let key_file = TempMaterial::from_bytes(
             b"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
         );
-        let nonce_file = TempMaterial::from_bytes(b"000000000000004a00000000");
 
         let encryption = EncryptionArgs {
-            key_file: key_file.boxed_path(),
-            nonce_file: nonce_file.boxed_path(),
+            key_file: Some(key_file.boxed_path()),
         };
 
         let plaintext = b"Hello encrypted world!";
         let encrypted = try_encrypt_message(plaintext, &encryption)
             .expect("encrypt failed");
         assert_ne!(plaintext.as_slice(), encrypted.as_slice());
+
+        // Verify the payload starts with a 12-byte nonce
+        assert!(encrypted.len() >= CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE);
 
         let decrypted = try_decrypt_message(&encrypted, &encryption)
             .expect("decrypt failed");
