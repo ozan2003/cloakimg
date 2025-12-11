@@ -7,7 +7,7 @@
 >
 > It is not recommended for use in critical systems.
 
-A command-line tool for hiding and extracting UTF-8 text/binary data in images using RGB LSB steganography.
+A command-line tool for hiding and extracting UTF-8 text/binary data into images using RGB LSB steganography.
 
 ## Features
 

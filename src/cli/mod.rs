@@ -70,7 +70,7 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode text with RGB LSB steganography into images",
+    about = "Encode and decode data into images using RGB LSB steganography",
     after_help = formatcp!(
         "Maximum supported payload size is {} MiB",
         MAX_REASONABLE_MSG_SIZE / (1024 * 1024)
@@ -91,7 +91,7 @@ enum Command
     Cap(CapacityArgs),
 }
 
-/// Embed a message into an image.
+/// Embed data into an image.
 #[derive(Args)]
 #[command(group(
     ArgGroup::new("message")
@@ -117,7 +117,7 @@ struct EncodingArgs
     encryption: Option<EncryptionArgs>,
 }
 
-/// Extract a message from an image.
+/// Extract data from an image.
 #[derive(Args)]
 struct DecodingArgs
 {
