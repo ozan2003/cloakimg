@@ -29,8 +29,7 @@ pub(super) fn resolve_message(
         // take the ownership of the text
         (Some(text), None) => Ok(text.into_bytes()),
         (None, Some(path)) => Ok(fs::read(path)?),
-        // this shouldn't happen because of the mutually exclusive group
-        (None, None) | (Some(_), Some(_)) => unreachable!(
+        _ => unreachable!(
             "mutually exclusive group should ensure that either text or \
              payload_file is provided"
         ),
