@@ -96,13 +96,17 @@ pub(super) fn try_decrypt_message(
 {
     if payload.len() < CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE
     {
-        return Err(CryptoError::DecryptionFailed);
+        return Err(CryptoError::DecryptionFailed {
+            context: "payload too short",
+        });
     }
 
     let context = encryption.context()?;
     let (nonce, ciphertext) = payload
         .split_first_chunk::<CHACHA20_NONCE_SIZE>()
-        .ok_or(CryptoError::DecryptionFailed)?;
+        .ok_or(CryptoError::DecryptionFailed {
+            context: "couldn't get nonce",
+        })?;
 
     let mut cipher = ChaCha20Cipher::new(&context.key, nonce);
     decrypt_with_cipher(ciphertext, &mut cipher)

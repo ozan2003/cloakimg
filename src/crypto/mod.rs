@@ -59,10 +59,16 @@ pub enum CryptoError
     },
 
     /// AEAD encryption failed
-    #[error("encryption failed")]
-    EncryptionFailed,
+    #[error("encryption failed: {context}")]
+    EncryptionFailed
+    {
+        context: &'static str
+    },
 
     /// AEAD decryption failed
-    #[error("decryption failed")]
-    DecryptionFailed,
+    #[error("decryption failed: {context}")]
+    DecryptionFailed
+    {
+        context: &'static str
+    },
 }
