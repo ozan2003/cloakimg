@@ -53,9 +53,7 @@ impl Cipher for ChaCha20Cipher
     {
         self.cipher
             .encrypt(&self.nonce, plaintext)
-            .map_err(|_| CryptoError::EncryptionFailed {
-                context: "encryption failed",
-            })
+            .map_err(|_| CryptoError::AeadEncryptFailed)
     }
 
     /// Decrypts and authenticates the supplied ciphertext.
@@ -63,8 +61,6 @@ impl Cipher for ChaCha20Cipher
     {
         self.cipher
             .decrypt(&self.nonce, ciphertext)
-            .map_err(|_| CryptoError::DecryptionFailed {
-                context: "decryption failed",
-            })
+            .map_err(|_| CryptoError::AeadDecryptFailed)
     }
 }

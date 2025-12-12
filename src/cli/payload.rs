@@ -28,7 +28,13 @@ pub(super) fn resolve_message(
     {
         // take the ownership of the text
         (Some(text), None) => Ok(text.into_bytes()),
-        (None, Some(path)) => Ok(fs::read(path)?),
+        (None, Some(path)) =>
+        {
+            fs::read(path.as_ref()).map_err(|source| AppError::Read {
+                path: path.as_ref().into(),
+                source,
+            })
+        },
         _ => unreachable!(
             "mutually exclusive group should ensure that either text or \
              payload_file is provided"
@@ -94,19 +100,19 @@ pub(super) fn try_decrypt_message(
     encryption: &EncryptionArgs,
 ) -> Result<Vec<u8>, CryptoError>
 {
-    if payload.len() < CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE
+    let minimum = CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE;
+    if payload.len() < minimum
     {
-        return Err(CryptoError::DecryptionFailed {
-            context: "payload too short",
+        return Err(CryptoError::PayloadTooShort {
+            needed_minimum: minimum,
+            actual: payload.len(),
         });
     }
 
     let context = encryption.context()?;
     let (nonce, ciphertext) = payload
         .split_first_chunk::<CHACHA20_NONCE_SIZE>()
-        .ok_or(CryptoError::DecryptionFailed {
-            context: "couldn't get nonce",
-        })?;
+        .ok_or(CryptoError::NonceExtractionFailed)?;
 
     let mut cipher = ChaCha20Cipher::new(&context.key, nonce);
     decrypt_with_cipher(ciphertext, &mut cipher)

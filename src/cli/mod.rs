@@ -27,13 +27,42 @@ use crate::stego::{
 #[derive(Debug, Error)]
 pub enum AppError
 {
-    /// An I/O error occurred
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    /// Failed to read a file from disk
+    #[error("failed to read {path}: {source}")]
+    Read
+    {
+        path: Box<Path>,
+        #[source]
+        source: std::io::Error,
+    },
 
-    /// An image error occurred
-    #[error(transparent)]
-    Image(#[from] image::ImageError),
+    /// Failed to write a file to disk
+    #[error("failed to write {path}: {source}")]
+    Write
+    {
+        path: Box<Path>,
+        #[source]
+        source: std::io::Error,
+    },
+
+    /// Failed to decode an input image
+    #[error("failed to decode image {path}: {source}")]
+    ImageOpen
+    {
+        path: Box<Path>,
+        #[source]
+        source: image::ImageError,
+    },
+
+    /// Failed to encode an output image
+    #[error("failed to encode image {path} as {target_format}: {source}")]
+    ImageEncode
+    {
+        path: Box<Path>,
+        target_format: Box<str>,
+        #[source]
+        source: image::ImageError,
+    },
 
     /// A steganography error occurred
     #[error(transparent)]
@@ -44,8 +73,12 @@ pub enum AppError
     MissingMessage,
 
     /// The format is unsupported
-    #[error("unsupported image format")]
-    UnsupportedFormat,
+    #[error("unsupported image format {extension}")]
+    UnsupportedFormat
+    {
+        /// Detected extension
+        extension: Box<str>,
+    },
 
     /// Input and output formats are different
     #[error(
@@ -252,7 +285,12 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 
     if let Some(path) = args.output_file
     {
-        fs::write(path, &message)?;
+        fs::write(path.as_ref(), &message).map_err(|source| {
+            AppError::Write {
+                path: path.as_ref().into(),
+                source,
+            }
+        })?;
     }
     else
     {

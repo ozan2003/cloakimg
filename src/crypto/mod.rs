@@ -58,17 +58,25 @@ pub enum CryptoError
         source: std::io::Error,
     },
 
-    /// AEAD encryption failed
-    #[error("encryption failed: {context}")]
-    EncryptionFailed
+    /// The encrypted payload is shorter than the required nonce + tag length
+    #[error(
+        "payload too short: need at least {needed_minimum} bytes, got {actual}"
+    )]
+    PayloadTooShort
     {
-        context: &'static str
+        needed_minimum: usize,
+        actual: usize,
     },
 
+    /// Nonce extraction from the payload failed
+    #[error("couldn't extract nonce from payload")]
+    NonceExtractionFailed,
+
+    /// AEAD encryption failed
+    #[error("authenticated encryption failed")]
+    AeadEncryptFailed,
+
     /// AEAD decryption failed
-    #[error("decryption failed: {context}")]
-    DecryptionFailed
-    {
-        context: &'static str
-    },
+    #[error("authenticated decryption failed")]
+    AeadDecryptFailed,
 }
