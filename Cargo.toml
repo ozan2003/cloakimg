@@ -2,6 +2,9 @@
 name = "cloakimg"
 version = "0.15.0"
 edition = "2024"
+description = "A command-line tool for hiding and extracting data into images using LSB steganography."
+repository = "https://github.com/ozan2003/cloakimg"
+keywords = ["steganography", "image-processing", "command-line", "encryption"]
 license-file = "LICENSE"
 
 [dependencies]
