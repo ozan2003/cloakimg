@@ -59,9 +59,12 @@ A command-line tool for hiding and extracting UTF-8 text/binary data into images
 
 ## Encryption (Optional)
 
-Enable authenticated callers to encrypt the payload before embedding by providing a key file. The key file can hold either raw bytes (32 bytes) or an ASCII hex string.
+Enable encryption for your payload prior to embedding by using a key file.
+The key file may consist of either 32 raw bytes or a 32-byte ASCII hex string.
 
-A fresh nonce is generated for each encryption and automatically embedded in the payload. The format is: `[12-byte nonce][N-byte ciphertext][16-byte tag]`. During decryption, the nonce is extracted automatically.
+A fresh nonce is generated for each encryption and automatically embedded in the payload.
+The format is: `[12-byte nonce][N-byte ciphertext][16-byte tag]`.
+During decryption, the nonce is extracted automatically.
 
 ```bash
 # Encrypt before embedding
