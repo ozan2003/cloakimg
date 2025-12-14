@@ -1,5 +1,12 @@
 # cloakimg
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Rust](https://img.shields.io/badge/language-Rust-orange?logo=rust)
+[![Stars](https://img.shields.io/github/stars/ozan2003/cloakimg)](https://github.com/ozan2003/cloakimg/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/ozan2003/cloakimg)](https://github.com/ozan2003/cloakimg/commits/master)
+[![Code Size](https://img.shields.io/github/languages/code-size/ozan2003/cloakimg)](https://github.com/ozan2003/cloakimg)
+[![dependency status](https://deps.rs/repo/github/ozan2003/cloakimg/status.svg?path=.)](https://deps.rs/repo/github/ozan2003/cloakimg?path=.)
+
 > [!CAUTION]  
 > This tool is not audited for security.
 >
