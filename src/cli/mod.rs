@@ -198,22 +198,23 @@ pub fn run() -> Result<(), AppError>
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 {
     let input_ext = normalized_extension(&args.input);
-
     let output_path = resolve_output_path(args, input_ext.as_deref());
-    let output_ext = normalized_extension(&output_path);
 
-    if input_ext != output_ext
     {
-        return Err(AppError::DifferentFormats {
-            input_extension: input_ext
-                .as_deref()
-                .unwrap_or("<unknown>")
-                .into(),
-            output_extension: output_ext
-                .as_deref()
-                .unwrap_or("<unknown>")
-                .into(),
-        });
+        let output_ext = normalized_extension(&output_path);
+        if input_ext != output_ext
+        {
+            return Err(AppError::DifferentFormats {
+                input_extension: input_ext
+                    .as_deref()
+                    .unwrap_or("<unknown>")
+                    .into(),
+                output_extension: output_ext
+                    .as_deref()
+                    .unwrap_or("<unknown>")
+                    .into(),
+            });
+        }
     }
 
     let mut image = load_image(&args.input)?;

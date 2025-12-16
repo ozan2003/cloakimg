@@ -46,20 +46,22 @@ pub fn embed_data(
         });
     }
 
-    let total_available_bits = channel_capacity_bits(image)?;
-    // HEADER_BITS is reserved for the payload length, the rest belongs to the
-    // payload
-    let payload_available_bytes =
-        (total_available_bits.saturating_sub(HEADER_BITS)) / 8;
-    // the total number of bits required for the length and the payload
-    let total_required_bits = HEADER_BITS + payload.len() * 8;
-
-    if total_required_bits > total_available_bits
     {
-        return Err(StegoError::MessageTooLarge {
-            requested_bytes: payload.len(),
-            available_bytes: payload_available_bytes,
-        });
+        let total_available_bits = channel_capacity_bits(image)?;
+        // HEADER_BITS is reserved for the payload length, the rest belongs to
+        // the payload
+        let payload_available_bytes =
+            (total_available_bits.saturating_sub(HEADER_BITS)) / 8;
+        // the total number of bits required for the length and the payload
+        let total_required_bits = HEADER_BITS + payload.len() * 8;
+
+        if total_required_bits > total_available_bits
+        {
+            return Err(StegoError::MessageTooLarge {
+                requested_bytes: payload.len(),
+                available_bytes: payload_available_bytes,
+            });
+        }
     }
 
     let channels = image
@@ -111,6 +113,7 @@ impl<'message> PayloadBits<'message>
         {
             // lsb's index is 0
             let shift = (HEADER_BITS - 1) - self.header_bit_index;
+
             #[allow(
                 clippy::cast_possible_truncation,
                 reason = "As we need only a single bit, we can shave off the \
@@ -128,6 +131,7 @@ impl<'message> PayloadBits<'message>
         }
 
         let byte = self.message[self.msg_byte_index];
+
         // lsb's index is 0
         #[allow(
             clippy::cast_possible_truncation,

@@ -100,13 +100,15 @@ pub(super) fn try_decrypt_message(
     encryption: &EncryptionArgs,
 ) -> Result<Vec<u8>, CryptoError>
 {
-    let minimum = CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE;
-    if payload.len() < minimum
     {
-        return Err(CryptoError::PayloadTooShort {
-            needed_minimum: minimum,
-            actual: payload.len(),
-        });
+        let minimum = CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE;
+        if payload.len() < minimum
+        {
+            return Err(CryptoError::PayloadTooShort {
+                needed_minimum: minimum,
+                actual: payload.len(),
+            });
+        }
     }
 
     let context = encryption.context()?;
