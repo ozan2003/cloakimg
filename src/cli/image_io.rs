@@ -31,7 +31,9 @@ pub(super) fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading the file, or converting the image.
+/// Returns:
+/// * [`AppError::Read`] when the path is a directory
+/// * [`AppError::ImageOpen`] when the image cannot be loaded
 pub(super) fn load_image<P: AsRef<Path>>(path: P)
 -> Result<RgbImage, AppError>
 {
@@ -62,7 +64,10 @@ pub(super) fn load_image<P: AsRef<Path>>(path: P)
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when writing the file.
+/// Returns:
+/// * [`AppError::Write`] when the file cannot be created
+/// * [`AppError::ImageEncode`] when the image cannot be encoded
+/// * [`AppError::UnsupportedFormat`] when the extension is not supported
 pub(super) fn write_image<P: AsRef<Path>>(
     image: &RgbImage,
     extension: Option<&str>,

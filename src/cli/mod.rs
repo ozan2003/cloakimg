@@ -177,8 +177,14 @@ struct CapacityArgs
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading or writing files, decoding images, or
-/// running steganography routines fails.
+/// Returns:
+/// * [`AppError::DifferentFormats`] when the input and output formats are
+///   different.
+/// * [`AppError::Write`] when the output file cannot be written
+/// * [`AppError::Read`] when the input file cannot be read
+/// * [`AppError::ImageOpen`] when the input image cannot be loaded
+/// * [`StegoError::ImageCapacityOverflow`] when the image dimensions are large
+///   enough to overflow the available channel count.
 pub fn run() -> Result<(), AppError>
 {
     let cli = Cli::parse();
@@ -194,7 +200,9 @@ pub fn run() -> Result<(), AppError>
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading or writing files, or encoding the image.
+/// Returns:
+/// * [`AppError::DifferentFormats`] when the input and output formats are
+///   different.
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 {
     let input_ext = normalized_extension(&args.input);
@@ -269,7 +277,8 @@ fn resolve_output_path(args: &EncodingArgs, input_ext: Option<&str>)
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading or writing files, or decoding the image.
+/// Returns:
+/// * [`AppError::Write`] when the output file cannot be written
 fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 {
     let image = load_image(&args.input)?;
@@ -308,7 +317,11 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading the image.
+/// Returns:
+/// * [`AppError::Read`] when the input file cannot be read
+/// * [`AppError::ImageOpen`] when the input image cannot be loaded
+/// * [`StegoError::ImageCapacityOverflow`] when the image dimensions are large
+///   enough to overflow the available channel count.
 fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
 {
     let image = load_image(&args.input)?;

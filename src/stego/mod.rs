@@ -11,10 +11,6 @@
 //!   0)
 //! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
 //!   ignored)
-//!
-//! # Errors
-//!
-//! Returns [`StegoError`] when embedding or extracting text fails.
 mod decode;
 mod encode;
 
@@ -124,8 +120,9 @@ pub enum StegoError
 ///
 /// # Errors
 ///
-/// Returns [`StegoError::ImageCapacityOverflow`] when the image dimensions are
-/// large enough to overflow the available channel count.
+/// Returns:
+/// * [`StegoError::ImageCapacityOverflow`] when the image dimensions are large
+///   enough to overflow the available channel count.
 pub fn max_message_size(image: &RgbImage) -> Result<usize, StegoError>
 {
     let available_bits = channel_capacity_bits(image)?;
@@ -133,6 +130,12 @@ pub fn max_message_size(image: &RgbImage) -> Result<usize, StegoError>
 }
 
 /// Returns the number of bits available in the image for the payload
+///
+/// # Errors
+///
+/// Returns:
+/// * [`StegoError::ImageCapacityOverflow`] when the image dimensions are large
+///   enough to overflow the available channel count.
 fn channel_capacity_bits(image: &RgbImage) -> Result<usize, StegoError>
 {
     capacity_bits_for_dimensions(image.width(), image.height())
@@ -143,8 +146,9 @@ fn channel_capacity_bits(image: &RgbImage) -> Result<usize, StegoError>
 ///
 /// # Errors
 ///
-/// Returns [`StegoError::ImageCapacityOverflow`] when the width/height
-/// pair would overflow the RGB channel count.
+/// Returns:
+/// * [`StegoError::ImageCapacityOverflow`] when the width/height pair would
+///   overflow the RGB channel count.
 // This function exists for testing purposes to avoid creating a new image
 // object.
 fn capacity_bits_for_dimensions(

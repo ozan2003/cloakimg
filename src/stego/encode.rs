@@ -10,10 +10,6 @@
 //!   0)
 //! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
 //!   ignored)
-//!
-//! # Errors
-//!
-//! Returns [`StegoError`] when embedding text fails.
 use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
@@ -31,9 +27,11 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///
 /// # Errors
 ///
-/// Returns [`StegoError::MessageExceedsHeaderLimit`] when the payload cannot
-/// fit in the 32-bit length header or [`StegoError::MessageTooLarge`] when the
-/// host image lacks sufficient RGB channels.
+/// Returns:
+/// * [`StegoError::MessageExceedsHeaderLimit`] when the payload cannot fit in
+///   the 32-bit length header
+/// * [`StegoError::MessageTooLarge`] when the host image lacks sufficient RGB
+///   channels
 pub fn embed_data(
     image: &mut RgbImage,
     payload: &[u8],

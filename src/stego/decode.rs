@@ -1,10 +1,6 @@
 //! Steganography routines for extracting payload bytes from images.
 //!
 //! Implements the logic for extracting payload bytes from an image.
-//!
-//! # Errors
-//!
-//! Returns [`StegoError`] when extracting text fails.
 use image::{Pixel, RgbImage};
 
 use super::{
@@ -16,21 +12,17 @@ use super::{
 ///
 /// # Errors
 ///
-/// Returns [`StegoError::MissingHeader`] when the image does not contain enough
-/// bits to recover the message length,
-///
-/// [`StegoError::UnreasonablePayloadSize`] when the payload size is too large
-/// to fit in the image,
-///
-/// [`StegoError::DeclaredPayloadExceedsCapacity`] when the header is
-/// invalid or the payload size is too large to fit in the image,
-///
-/// [`StegoError::IncompletePayload`] when the image data ends before the
-/// payload could be fully reconstructed.
-///
-/// # Panics
-///
-/// Panics if the length bits are too large to fit in a usize.
+/// Returns:
+/// * [`StegoError::MissingHeader`] when the image does not contain enough bits
+///   to recover the message length
+/// * [`StegoError::UnreasonablePayloadSize`] when the payload size is too large
+///   to fit in the image
+/// * [`StegoError::DeclaredPayloadExceedsCapacity`] when the header is invalid
+///   or the payload size is too large to fit in the image
+/// * [`StegoError::IncompletePayload`] when the image data ends before the
+///   payload could be fully reconstructed
+/// * [`StegoError::PayloadLengthParseError`] when the length bits can't be
+///   parsed into an integer
 pub fn extract_data(image: &RgbImage) -> Result<Vec<u8>, StegoError>
 {
     let available_bits = channel_capacity_bits(image)?;

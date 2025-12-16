@@ -49,6 +49,11 @@ impl ChaCha20Cipher
 impl Cipher for ChaCha20Cipher
 {
     /// Encrypts the supplied plaintext and returns ciphertext + tag.
+    ///
+    /// # Errors
+    ///
+    /// Returns:
+    /// * [`CryptoError::AeadEncryptFailed`] when encryption fails
     fn encrypt(&mut self, plaintext: &[u8]) -> Result<Vec<u8>, CryptoError>
     {
         self.cipher
@@ -57,6 +62,11 @@ impl Cipher for ChaCha20Cipher
     }
 
     /// Decrypts and authenticates the supplied ciphertext.
+    ///
+    /// # Errors
+    ///
+    /// Returns:
+    /// * [`CryptoError::AeadDecryptFailed`] when decryption fails
     fn decrypt(&mut self, ciphertext: &[u8]) -> Result<Vec<u8>, CryptoError>
     {
         self.cipher

@@ -18,8 +18,8 @@ use crate::crypto::{
 ///
 /// # Errors
 ///
-/// Returns [`AppError`] when reading the payload file, or when both text and
-/// file are provided.
+/// Returns:
+/// * [`AppError::Read`] when the payload file cannot be read
 pub(super) fn resolve_message(
     args: &mut EncodingArgs,
 ) -> Result<Vec<u8>, AppError>
@@ -58,7 +58,8 @@ pub(super) fn resolve_message(
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when encrypting the message fails.
+/// Returns:
+/// * [`CryptoError::EncryptionFailed`] when encrypting the message fails
 pub(super) fn try_encrypt_message(
     message: &[u8],
     encryption: &EncryptionArgs,
@@ -93,8 +94,9 @@ pub(super) fn try_encrypt_message(
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when decrypting the message fails or when the
-/// payload is too short to contain a nonce and tag.
+/// Returns:
+/// * [`CryptoError::NonceExtractionFailed`] when the nonce cannot be extracted
+/// * [`CryptoError::DecryptionFailed`] when decrypting the message fails
 pub(super) fn try_decrypt_message(
     payload: &[u8],
     encryption: &EncryptionArgs,
@@ -133,6 +135,11 @@ pub(super) fn try_decrypt_message(
 /// # Returns
 ///
 /// The encrypted message bytes.
+///
+/// # Errors
+///
+/// Returns:
+/// * [`CryptoError::EncryptionFailed`] when encrypting the message fails
 fn encrypt_with_cipher<C: Cipher>(
     message: &[u8],
     cipher: &mut C,
@@ -154,6 +161,11 @@ fn encrypt_with_cipher<C: Cipher>(
 /// # Returns
 ///
 /// The decrypted message.
+///
+/// # Errors
+///
+/// Returns:
+/// * [`CryptoError::DecryptionFailed`] when decrypting the message fails
 fn decrypt_with_cipher<C: Cipher>(
     ciphertext: &[u8],
     cipher: &mut C,

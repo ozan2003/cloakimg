@@ -22,14 +22,17 @@ impl EncryptionArgs
 {
     /// Gets the encryption context.
     ///
-    /// # Errors
-    ///
-    /// Returns [`CryptoError`] when the key file is not provided or when the
-    /// key file is not a valid hex string.
-    ///
     /// # Returns
     ///
     /// The encryption context.
+    ///
+    /// # Errors
+    ///
+    /// Returns:
+    /// * [`CryptoError::MissingEncryptionField`] when the key file is not
+    ///   provided
+    /// * [`CryptoError::InvalidHex`] when the key file is not a valid hex
+    ///   string
     pub(super) fn context(&self) -> Result<EncryptionContext, CryptoError>
     {
         let key_path = self.key_file.as_ref().ok_or_else(|| {
@@ -77,8 +80,10 @@ impl std::fmt::Debug for EncryptionContext
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when the hex string is not a valid or
-/// when the hex string length is not equal to the expected length.
+/// Returns:
+/// * [`CryptoError::InvalidHex`] when the hex string is not a valid hex string
+/// * [`CryptoError::InvalidLength`] when the hex string length is not equal to
+///   the expected length
 fn parse_hex_array<const N: usize>(
     field: &str,
     hex_value: &str,
@@ -119,8 +124,10 @@ fn parse_hex_array<const N: usize>(
 ///
 /// # Errors
 ///
-/// Returns [`CryptoError`] when the file is not a valid hex string or
-/// when the file length is not equal to the expected length.
+/// Returns:
+/// * [`CryptoError::KeyMaterialIo`] when the file cannot be read
+/// * [`CryptoError::InvalidLength`] when the file length is not equal to the
+///   expected length
 fn parse_crypto_file<const N: usize>(
     field: &str,
     path: impl AsRef<Path>,

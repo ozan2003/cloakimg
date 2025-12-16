@@ -14,7 +14,8 @@ pub trait Cipher
     ///
     /// # Errors
     ///
-    /// Returns [`CryptoError`] when encryption fails.
+    /// Returns:
+    /// * [`CryptoError::EncryptionFailed`] when encryption fails
     fn encrypt(&mut self, plaintext: &[u8]) -> Result<Vec<u8>, CryptoError>;
 
     /// Decrypts the supplied ciphertext and returns the plaintext.
@@ -25,7 +26,7 @@ pub trait Cipher
     ///
     /// # Errors
     ///
-    /// Returns [`CryptoError`] when decryption fails or authentication does not
-    /// verify (for AEADs).
+    /// Returns:
+    /// * [`CryptoError::DecryptionFailed`] when decryption fails
     fn decrypt(&mut self, ciphertext: &[u8]) -> Result<Vec<u8>, CryptoError>;
 }
