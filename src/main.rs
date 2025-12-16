@@ -1,12 +1,11 @@
-use std::process;
+use cloakimg::cli::{self, AppError};
 
-use cloakimg::cli;
-
-fn main()
+fn main() -> Result<(), AppError>
 {
     if let Err(err) = cli::run()
     {
         eprintln!("Error: {err}");
-        process::exit(1);
+        return Err(err);
     }
+    Ok(())
 }
