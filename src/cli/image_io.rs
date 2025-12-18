@@ -15,7 +15,7 @@ use image::{DynamicImage, ExtendedColorType, ImageEncoder, RgbImage};
 use super::AppError;
 
 /// Normalizes the extension of a path to lowercase.
-pub(super) fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
+pub(super) fn normalized_extension(path: impl AsRef<Path>) -> Option<String>
 {
     path.as_ref()
         .extension()
@@ -34,8 +34,7 @@ pub(super) fn normalized_extension<P: AsRef<Path>>(path: P) -> Option<String>
 /// Returns:
 /// * [`AppError::Read`] when the path is a directory
 /// * [`AppError::ImageOpen`] when the image cannot be loaded
-pub(super) fn load_image<P: AsRef<Path>>(path: P)
--> Result<RgbImage, AppError>
+pub(super) fn load_image(path: impl AsRef<Path>) -> Result<RgbImage, AppError>
 {
     if path.as_ref().is_dir()
     {
@@ -68,10 +67,10 @@ pub(super) fn load_image<P: AsRef<Path>>(path: P)
 /// * [`AppError::Write`] when the file cannot be created
 /// * [`AppError::ImageEncode`] when the image cannot be encoded
 /// * [`AppError::UnsupportedFormat`] when the extension is not supported
-pub(super) fn write_image<P: AsRef<Path>>(
+pub(super) fn write_image(
     image: &RgbImage,
     extension: Option<&str>,
-    output: P,
+    output: impl AsRef<Path>,
 ) -> Result<(), AppError>
 {
     let mut file =
