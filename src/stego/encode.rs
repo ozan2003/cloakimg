@@ -83,13 +83,11 @@ struct PayloadBits<'message>
 {
     /// The message to embed
     message: &'message [u8],
-    /// The length of the message
-    msg_byte_len: usize,
     /// The index of the next bit in the length
     header_bit_index: usize,
     /// The index of the current byte across the message
     msg_byte_index: usize,
-    /// The index of the current bit in the current byte
+    /// The index of the current bit in a single byte we're on
     curr_bit_index: u8,
 }
 
@@ -99,7 +97,6 @@ impl<'message> PayloadBits<'message>
     {
         Self {
             message,
-            msg_byte_len: message.len(),
             ..Default::default()
         }
     }
@@ -117,7 +114,7 @@ impl<'message> PayloadBits<'message>
                 reason = "As we need only a single bit, we can shave off the \
                           excess zero bits"
             )]
-            let bit = ((self.msg_byte_len >> shift) & 1) as _;
+            let bit = ((self.message.len() >> shift) & 1) as _;
 
             self.header_bit_index += 1;
             return Some(bit);
@@ -168,7 +165,7 @@ impl Iterator for PayloadBits<'_>
         // The iterator will always yield at least HEADER_BITS bits
         (
             HEADER_BITS as _,
-            self.msg_byte_len
+            self.message.len()
                 .checked_mul(8)
                 .and_then(|l| l.checked_add(HEADER_BITS as _)),
         )
