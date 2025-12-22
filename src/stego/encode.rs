@@ -14,7 +14,7 @@ use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 
-/// Embeds arbitrary bytes inside the RGB least-significant bits of the given
+/// Embeds given bytes inside the least-significant bits of the pixels of the
 /// RGB image.
 ///
 /// # Format
@@ -25,6 +25,15 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 /// - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
 ///   ignored)
 ///
+/// # Arguments
+///
+/// * `image` - The RGB image to embed the payload into
+/// * `payload` - The bytes to embed
+///
+/// # Returns
+///
+/// `Ok(())` on success
+///
 /// # Errors
 ///
 /// Returns:
@@ -32,6 +41,18 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///   the 32-bit length header
 /// * [`StegoError::MessageTooLarge`] when the host image lacks sufficient RGB
 ///   channels
+///
+/// # Example
+///
+/// ```
+/// use image::RgbImage;
+/// use stego::stego::{embed_data, StegoError};
+///
+/// let mut img = RgbImage::new(100, 100);
+/// let payload = b"Hidden message";
+///
+/// embed_data(&mut img, payload).expect("Failed to embed data");
+/// ```
 pub fn embed_data(
     image: &mut RgbImage,
     payload: &[u8],
@@ -77,7 +98,7 @@ pub fn embed_data(
     Ok(())
 }
 
-/// Iterator over the bits of the payload, encoding the message length first
+/// Iterator over the bits of the payload
 #[derive(Default)]
 struct PayloadBits<'message>
 {
@@ -93,6 +114,11 @@ struct PayloadBits<'message>
 
 impl<'message> PayloadBits<'message>
 {
+    /// Creates an iterator over the bits of the given message
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to embed
     fn new(message: &'message [u8]) -> Self
     {
         Self {
@@ -101,6 +127,16 @@ impl<'message> PayloadBits<'message>
         }
     }
 
+    /// Returns the next bit of the payload, encoding the length first
+    ///
+    /// # Returns
+    ///
+    /// * `Some(u8)` - The next bit of the payload (0 or 1)
+    /// * `None` - No more bits to return
+    ///
+    /// # Notes
+    ///
+    /// The length is encoded as a big-endian `HEADER_BITS`-bit unsigned integer
     fn next_bit(&mut self) -> Option<u8>
     {
         // encode the length
@@ -165,7 +201,8 @@ impl Iterator for PayloadBits<'_>
         // The iterator will always yield at least HEADER_BITS bits
         (
             HEADER_BITS as _,
-            self.message.len()
+            self.message
+                .len()
                 .checked_mul(8)
                 .and_then(|l| l.checked_add(HEADER_BITS as _)),
         )

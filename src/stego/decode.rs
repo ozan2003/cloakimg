@@ -10,6 +10,14 @@ use super::{
 /// Extracts the raw payload previously embedded with [`embed_text`] from the
 /// provided image.
 ///
+/// # Arguments
+///
+/// * `image` - The RGB image to extract the payload from
+///
+/// # Returns
+///
+/// `Ok(Vec<u8>)` containing the extracted payload on success
+///
 /// # Errors
 ///
 /// Returns:
@@ -23,6 +31,22 @@ use super::{
 ///   payload could be fully reconstructed
 /// * [`StegoError::PayloadLengthParseError`] when the length bits can't be
 ///   parsed into an integer
+///
+/// # Example
+///
+/// ```
+/// use image::RgbImage;
+/// use stego::stego::{embed_data, extract_data, StegoError};
+///
+/// let mut img = RgbImage::new(100, 100);
+/// let payload = b"Hidden message";
+///
+/// embed_data(&mut img, payload).expect("Failed to embed data");
+///
+/// let extracted = extract_data(&img).expect("Failed to extract data");
+///
+/// assert_eq!(extracted, payload);
+/// ```
 pub fn extract_data(image: &RgbImage) -> Result<Vec<u8>, StegoError>
 {
     let available_bits = channel_capacity_bits(image)?;

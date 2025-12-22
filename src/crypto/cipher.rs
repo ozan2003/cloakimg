@@ -12,6 +12,10 @@ pub trait Cipher
     ///
     /// * `plaintext` - Data that will be encrypted accordingly to the cipher.
     ///
+    /// # Returns
+    ///
+    /// `Ok(Vec<u8>)` containing the ciphertext on success
+    ///
     /// # Errors
     ///
     /// Returns:
@@ -23,6 +27,10 @@ pub trait Cipher
     /// # Arguments
     ///
     /// * `ciphertext` - Data that was produced by the cipher's encryption.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success
     ///
     /// # Errors
     ///

@@ -15,6 +15,17 @@ use image::{DynamicImage, ExtendedColorType, ImageEncoder, RgbImage};
 use super::AppError;
 
 /// Normalizes the extension of a path to lowercase.
+///
+/// # Example
+///
+/// ```
+/// use std::path::Path;
+/// use crate::cli::image_io::normalized_extension;
+///
+/// let ext = normalized_extension(Path::new("image.PNG"));
+///
+/// assert_eq!(ext, Some("png".into()));
+/// ```
 pub(super) fn normalized_extension(path: impl AsRef<Path>) -> Option<String>
 {
     path.as_ref()
@@ -29,9 +40,13 @@ pub(super) fn normalized_extension(path: impl AsRef<Path>) -> Option<String>
 ///
 /// * `path` - The path to the image to load.
 ///
+/// # Returns
+///
+/// * An `RgbImage` containing the loaded image.
+///
 /// # Errors
 ///
-/// Returns:
+/// # Returns
 /// * [`AppError::Read`] when the path is a directory
 /// * [`AppError::ImageOpen`] when the image cannot be loaded
 pub(super) fn load_image(path: impl AsRef<Path>) -> Result<RgbImage, AppError>
@@ -67,6 +82,25 @@ pub(super) fn load_image(path: impl AsRef<Path>) -> Result<RgbImage, AppError>
 /// * [`AppError::Write`] when the file cannot be created
 /// * [`AppError::ImageEncode`] when the image cannot be encoded
 /// * [`AppError::UnsupportedFormat`] when the extension is not supported
+///
+/// # Supported Extensions
+///
+/// * png
+/// * bmp
+/// * tiff / tif
+/// * ppm
+///
+/// # Example
+///
+/// ```
+/// use std::path::Path;
+/// use image::RgbImage;
+/// use crate::cli::image_io::write_image;
+///
+/// let image = RgbImage::new(100, 100);
+/// write_image(&image, Some("png"), Path::new("output.png"))
+///     .expect("Failed to write image");
+/// ```
 pub(super) fn write_image(
     image: &RgbImage,
     extension: Option<&str>,

@@ -25,6 +25,11 @@ pub struct ChaCha20Cipher
 impl ChaCha20Cipher
 {
     /// Builds a new ChaCha20-Poly1305 instance from raw key/nonce bytes.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The 32-byte encryption key
+    /// * `nonce` - The 12-byte nonce
     #[must_use]
     pub fn new(
         key: &[u8; CHACHA20_KEY_SIZE],
@@ -39,6 +44,10 @@ impl ChaCha20Cipher
     }
 
     /// Generates a fresh nonce using the OS RNG.
+    ///
+    /// # Returns
+    ///
+    /// A newly generated 12-byte nonce.
     #[must_use]
     pub fn generate_nonce() -> [u8; CHACHA20_NONCE_SIZE]
     {
@@ -49,6 +58,14 @@ impl ChaCha20Cipher
 impl Cipher for ChaCha20Cipher
 {
     /// Encrypts the supplied plaintext and returns ciphertext + tag.
+    ///
+    /// # Arguments
+    ///
+    /// * `plaintext` - The data to encrypt
+    ///
+    /// # Returns
+    ///
+    /// `Ok(Vec<u8>)` containing the ciphertext on success
     ///
     /// # Errors
     ///
@@ -62,6 +79,14 @@ impl Cipher for ChaCha20Cipher
     }
 
     /// Decrypts and authenticates the supplied ciphertext.
+    ///
+    /// # Arguments
+    ///
+    /// * `ciphertext` - The data to decrypt
+    ///
+    /// # Returns
+    ///
+    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success
     ///
     /// # Errors
     ///

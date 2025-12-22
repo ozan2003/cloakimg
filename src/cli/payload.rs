@@ -16,9 +16,13 @@ use crate::crypto::{
 
 /// Resolves the payload to embed from the command line arguments.
 ///
+/// # Arguments
+///
+/// * `args` - The encoding arguments containing payload source.
+///
 /// # Errors
 ///
-/// Returns:
+/// # Returns
 /// * [`AppError::Read`] when the payload file cannot be read
 pub(super) fn resolve_message(
     args: &mut EncodingArgs,

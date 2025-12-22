@@ -198,9 +198,13 @@ pub fn run() -> Result<(), AppError>
 
 /// Handles the encoding of a message into an image.
 ///
+/// # Arguments
+///
+/// * `args` - The encoding arguments containing input/output paths and message.
+///
 /// # Errors
 ///
-/// Returns:
+/// # Returns
 /// * [`AppError::DifferentFormats`] when the input and output formats are
 ///   different.
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
@@ -253,6 +257,25 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 /// # Returns
 ///
 /// The copy of the resolved path if provided, otherwise the default path.
+///
+/// # Example
+///
+/// ```
+/// use std::path::{Path, PathBuf};
+/// use crate::cli::resolve_output_path;
+///
+/// let args = EncodingArgs {
+///     input: Path::new("input.png").into(),
+///     output_file: None,
+///     text: Some("secret".into()),
+///     payload_file: None,
+///     encryption: None,
+/// };
+///
+/// let output_path = resolve_output_path(&args, Some("png"));
+///
+/// assert_eq!(output_path, PathBuf::from("a.png"));
+/// ```
 fn resolve_output_path(args: &EncodingArgs, input_ext: Option<&str>)
 -> PathBuf
 {
@@ -274,6 +297,10 @@ fn resolve_output_path(args: &EncodingArgs, input_ext: Option<&str>)
 }
 
 /// Handles the decoding of a message from an image.
+///
+/// # Arguments
+///
+/// * `args` - The decoding arguments containing input/output paths.
 ///
 /// # Errors
 ///
@@ -314,6 +341,10 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 }
 
 /// Handles the capacity calculation of a message for an image.
+///
+/// # Arguments
+///
+/// * `args` - The capacity arguments containing the input image path.
 ///
 /// # Errors
 ///
