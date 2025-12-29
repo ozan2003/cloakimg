@@ -231,12 +231,15 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 
     let mut image = load_image(&args.input)?;
     let payload = {
-        let mut payload = resolve_message(args)?;
+        let message = resolve_message(args)?;
         if let Some(encryption) = args.encryption.as_ref()
         {
-            payload = try_encrypt_message(&payload, encryption)?;
+            try_encrypt_message(&message, encryption)?
         }
-        payload
+        else
+        {
+            message
+        }
     };
 
     // Embedding the message happens here
@@ -312,12 +315,15 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     // Extract the hidden message and decrypt it only when encryption flags were
     // provided.
     let message = {
-        let mut message = extract_data(&image)?;
+        let payload = extract_data(&image)?;
         if let Some(encryption) = args.encryption.as_ref()
         {
-            message = try_decrypt_message(&message, encryption)?;
+            try_decrypt_message(&payload, encryption)?
         }
-        message
+        else
+        {
+            payload
+        }
     };
 
     if let Some(path) = args.output_file
