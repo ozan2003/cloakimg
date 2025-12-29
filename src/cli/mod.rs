@@ -6,6 +6,7 @@ mod image_io;
 mod payload;
 
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
@@ -338,9 +339,9 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     else
     {
         // Write the message to stdout if no file path is provided.
-        // We fall back to lossy UTF-8 to avoid panicking on arbitrary payload
-        // bytes.
-        println!("{}", String::from_utf8_lossy(&message));
+        std::io::stdout()
+            .write_all(&message)
+            .expect("failed to write message to stdout");
     }
 
     Ok(())
