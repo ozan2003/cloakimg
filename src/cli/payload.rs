@@ -30,7 +30,6 @@ pub(super) fn resolve_message(
 {
     match (args.text.take(), &args.payload_file)
     {
-        // take the ownership of the text
         (Some(text), None) => Ok(text.into_bytes()),
         (None, Some(path)) =>
         {
