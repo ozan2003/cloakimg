@@ -49,7 +49,7 @@ A command-line tool for hiding and extracting UTF-8 text/binary data into images
 - **Embed the source code into a image**:
 
  ```bash
- cloakimg encode data/tp0n3p08.png --file src/stego/encode.rs"
+ cloakimg encode data/tp0n3p08.png --file src/stego/encode.rs
  ```
 
 - **Recover a message to the terminal**:
