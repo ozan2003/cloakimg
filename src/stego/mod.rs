@@ -6,7 +6,7 @@
 //!
 //! # Encoding Format
 //!
-//! - First 32 LSBs: message length as big-endian u32
+//! - First `HEADER_BITS` LSBs: message length as big-endian u32
 //! - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
 //!   0)
 //! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
@@ -63,7 +63,8 @@ pub enum StegoError
 
     /// The payload length is too large to fit in the header
     #[error(
-        "payload length of {requested_bytes} bytes exceeds 32-bit header limit"
+        "payload length of {requested_bytes} bytes exceeds {HEADER_BITS}-bit \
+         header limit"
     )]
     MessageExceedsHeaderLimit
     {
