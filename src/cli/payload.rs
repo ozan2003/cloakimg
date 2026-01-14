@@ -11,7 +11,7 @@ use std::fs;
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
 use crate::crypto::{
-    CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE, ChaCha20Cipher, Cipher, CryptoError,
+    AUTH_TAG_SIZE, ChaCha20Cipher, Cipher, CryptoError, NONCE_SIZE,
 };
 
 /// Resolves the payload to embed from the command line arguments.
@@ -75,7 +75,7 @@ pub(super) fn try_encrypt_message(
     let mut cipher = ChaCha20Cipher::new(&context.key, &nonce);
     let mut ciphertext = encrypt_with_cipher(message, &mut cipher)?;
 
-    let mut out = Vec::with_capacity(CHACHA20_NONCE_SIZE + ciphertext.len());
+    let mut out = Vec::with_capacity(NONCE_SIZE + ciphertext.len());
     out.extend_from_slice(&nonce); // Prepend nonce as it is safe to do so.
     out.append(&mut ciphertext);
     Ok(out)
@@ -106,7 +106,7 @@ pub(super) fn try_decrypt_message(
 ) -> Result<Vec<u8>, CryptoError>
 {
     {
-        let minimum = CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE;
+        let minimum = NONCE_SIZE + AUTH_TAG_SIZE;
         if payload.len() < minimum
         {
             return Err(CryptoError::PayloadTooShort {
@@ -118,7 +118,7 @@ pub(super) fn try_decrypt_message(
 
     let context = encryption.context()?;
     let (nonce, ciphertext) = payload
-        .split_first_chunk::<CHACHA20_NONCE_SIZE>()
+        .split_first_chunk::<NONCE_SIZE>()
         .ok_or(CryptoError::NonceExtractionFailed)?;
 
     let mut cipher = ChaCha20Cipher::new(&context.key, nonce);
@@ -203,7 +203,7 @@ mod tests
         assert_ne!(plaintext.as_slice(), encrypted.as_slice());
 
         // Verify the payload starts with a 12-byte nonce and has a 16-byte tag.
-        assert!(encrypted.len() >= CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE);
+        assert!(encrypted.len() >= NONCE_SIZE + AUTH_TAG_SIZE);
 
         let decrypted = try_decrypt_message(&encrypted, &encryption)
             .expect("decrypt failed");

@@ -7,7 +7,7 @@ use std::path::Path;
 use clap::Args;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-use crate::crypto::{CHACHA20_KEY_SIZE as KEY_SIZE, CryptoError};
+use crate::crypto::{CryptoError, KEY_SIZE};
 
 /// Encryption arguments shared by encode/decode commands.
 #[derive(Args)]

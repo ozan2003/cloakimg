@@ -4,9 +4,7 @@ mod cipher;
 
 use std::path::Path;
 
-pub use chacha20::{
-    CHACHA20_KEY_SIZE, CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE, ChaCha20Cipher,
-};
+pub use chacha20::{AUTH_TAG_SIZE, ChaCha20Cipher, KEY_SIZE, NONCE_SIZE};
 pub use cipher::Cipher;
 use thiserror::Error;
 

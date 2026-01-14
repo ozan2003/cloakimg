@@ -386,7 +386,7 @@ mod tests
     use clap::{CommandFactory, Parser};
 
     use super::*;
-    use crate::crypto::{CHACHA20_NONCE_SIZE, CHACHA20_TAG_SIZE};
+    use crate::crypto::{AUTH_TAG_SIZE, NONCE_SIZE};
 
     // Debug impls are only needed in tests
     impl Debug for Cli
@@ -701,7 +701,7 @@ mod tests
 
         // Verify nonce is embedded (12 bytes nonce + ciphertext + 16 bytes tag)
         assert!(
-            encrypted.len() > CHACHA20_NONCE_SIZE + CHACHA20_TAG_SIZE,
+            encrypted.len() > NONCE_SIZE + AUTH_TAG_SIZE,
             "encrypted payload should include nonce and tag"
         );
 
@@ -736,8 +736,8 @@ mod tests
             .expect("encryption should succeed");
 
         // Extract nonces (first 12 bytes)
-        let nonce1 = &encrypted1[..CHACHA20_NONCE_SIZE];
-        let nonce2 = &encrypted2[..CHACHA20_NONCE_SIZE];
+        let nonce1 = &encrypted1[..NONCE_SIZE];
+        let nonce2 = &encrypted2[..NONCE_SIZE];
 
         // Nonces should be different even with same message and key
         assert_ne!(

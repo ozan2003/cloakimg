@@ -5,13 +5,13 @@ use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 use super::{Cipher, CryptoError};
 
 /// ChaCha20-Poly1305 key size in bytes.
-pub const CHACHA20_KEY_SIZE: usize = 32;
+pub const KEY_SIZE: usize = 32;
 
 /// ChaCha20-Poly1305 nonce size in bytes.
-pub const CHACHA20_NONCE_SIZE: usize = 12;
+pub const NONCE_SIZE: usize = 12;
 
 /// ChaCha20-Poly1305 authentication tag size in bytes.
-pub const CHACHA20_TAG_SIZE: usize = 16;
+pub const AUTH_TAG_SIZE: usize = 16;
 
 /// A thin wrapper over the `chacha20poly1305` AEAD to satisfy the
 /// [`Cipher`] trait.
@@ -31,10 +31,7 @@ impl ChaCha20Cipher
     /// * `key` - The 32-byte encryption key
     /// * `nonce` - The 12-byte nonce
     #[must_use]
-    pub fn new(
-        key: &[u8; CHACHA20_KEY_SIZE],
-        nonce: &[u8; CHACHA20_NONCE_SIZE],
-    ) -> Self
+    pub fn new(key: &[u8; KEY_SIZE], nonce: &[u8; NONCE_SIZE]) -> Self
     {
         let key = Key::from_slice(key);
         let cipher = ChaCha20Poly1305::new(key);
@@ -49,7 +46,7 @@ impl ChaCha20Cipher
     ///
     /// A newly generated 12-byte nonce.
     #[must_use]
-    pub fn generate_nonce() -> [u8; CHACHA20_NONCE_SIZE]
+    pub fn generate_nonce() -> [u8; NONCE_SIZE]
     {
         ChaCha20Poly1305::generate_nonce(&mut OsRng).into()
     }
