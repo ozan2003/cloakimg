@@ -5,7 +5,7 @@
 //!
 //! # Format
 //!
-//! - First 32 LSBs: message length as big-endian u32
+//! - First `HEADER_BITS` LSBs: message length as big-endian u32
 //! - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
 //!   0)
 //! - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
@@ -19,7 +19,7 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///
 /// # Format
 ///
-/// - First 32 LSBs: message length as big-endian u32
+/// - First `HEADER_BITS` LSBs: message length as big-endian u32
 /// - Remaining LSBs: message bytes, each byte encoded MSB-first (bit 7 to bit
 ///   0)
 /// - Pixels are read left-to-right, top-to-bottom, RGB channels only (alpha
@@ -38,7 +38,7 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///
 /// Returns:
 /// * [`StegoError::MessageExceedsHeaderLimit`] when the payload cannot fit in
-///   the 32-bit length header
+///   the `HEADER_BITS`-wide length header
 /// * [`StegoError::MessageTooLarge`] when the host image lacks sufficient RGB
 ///   channels
 ///
