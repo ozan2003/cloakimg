@@ -198,13 +198,31 @@ impl Iterator for PayloadBits<'_>
 
     fn size_hint(&self) -> (usize, Option<usize>)
     {
-        // The iterator will always yield at least HEADER_BITS bits
-        (
-            HEADER_BITS as _,
-            self.message
+        let header_remaining =
+            HEADER_BITS.saturating_sub(self.header_bit_index);
+
+        let payload_bits_remaining = {
+            let payload_bytes_remaining = self
+                .message
                 .len()
-                .checked_mul(8)
-                .and_then(|l| l.checked_add(HEADER_BITS as _)),
-        )
+                .saturating_sub(self.msg_byte_index);
+
+            match payload_bytes_remaining.checked_mul(8)
+            {
+                Some(bits) => bits.saturating_sub(self.curr_bit_index as _),
+                None => return (header_remaining, None),
+            }
+        };
+
+        match header_remaining.checked_add(payload_bits_remaining)
+        {
+            Some(total) => (total, Some(total)),
+            // Because of this arm we can't implement ExactSizeIterator
+            None => (header_remaining, None),
+        }
     }
+}
+
+impl std::iter::FusedIterator for PayloadBits<'_>
+{
 }
