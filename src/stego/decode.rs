@@ -3,9 +3,7 @@
 //! Implements the logic for extracting payload bytes from an image.
 use image::{Pixel, RgbImage};
 
-use super::{
-    HEADER_BITS, MAX_REASONABLE_MSG_SIZE, StegoError, channel_capacity_bits,
-};
+use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 
 /// Extracts the raw payload previously embedded with [`embed_text`] from the
 /// provided image.
@@ -23,8 +21,6 @@ use super::{
 /// Returns:
 /// * [`StegoError::MissingHeader`] when the image does not contain enough bits
 ///   to recover the message length
-/// * [`StegoError::UnreasonablePayloadSize`] when the payload size is too large
-///   to fit in the image
 /// * [`StegoError::DeclaredPayloadExceedsCapacity`] when the header is invalid
 ///   or the payload size is too large to fit in the image
 /// * [`StegoError::IncompletePayload`] when the image data ends before the
@@ -84,11 +80,6 @@ pub fn extract_data(image: &RgbImage) -> Result<Vec<u8>, StegoError>
             .try_into()
             .map_err(StegoError::PayloadLengthParseError)?
     };
-
-    if declared_bytes > MAX_REASONABLE_MSG_SIZE
-    {
-        return Err(StegoError::UnreasonablePayloadSize { declared_bytes });
-    }
 
     // Our data starts after the header, so we need to subtract the header
     let remaining_capacity_bytes = {

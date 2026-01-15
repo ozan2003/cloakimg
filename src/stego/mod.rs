@@ -32,20 +32,6 @@ const _: () = const {
 /// Maximum value representable by the payload length header in bytes
 const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
-/// Maximum reasonable message size in bytes
-// Messages exceeding this size are considered unreasonable
-pub const MAX_REASONABLE_MSG_SIZE: usize = 100 * 1024 * 1024; // 100 MiB
-
-// The reasonable message size cannot be enforced if it exceeds the payload
-// max length
-const _: () = const {
-    assert!(
-        MAX_REASONABLE_MSG_SIZE <= PAYLOAD_MAX_LEN,
-        "Max reasonable message size is impossible to violate if it exceeds \
-         the payload max length"
-    );
-};
-
 /// Errors that can be emitted while embedding or extracting text
 #[derive(Debug, Error)]
 pub enum StegoError
@@ -86,16 +72,6 @@ pub enum StegoError
     {
         declared_bytes: usize,
         available_bytes: usize,
-    },
-
-    /// The payload size is too large to fit in the image
-    #[error(
-        "declared payload size of {declared_bytes} bytes exceeds reasonable \
-         limit of {MAX_REASONABLE_MSG_SIZE} bytes"
-    )]
-    UnreasonablePayloadSize
-    {
-        declared_bytes: usize
     },
 
     /// The image data ended before the payload could be fully reconstructed

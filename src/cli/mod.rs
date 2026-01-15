@@ -10,7 +10,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
-use const_format::formatcp;
 use thiserror::Error;
 
 use self::encryption::EncryptionArgs;
@@ -19,10 +18,7 @@ use self::payload::{
     resolve_message, try_decrypt_message, try_encrypt_message,
 };
 use crate::crypto::CryptoError;
-use crate::stego::{
-    MAX_REASONABLE_MSG_SIZE, StegoError, embed_data, extract_data,
-    max_message_size,
-};
+use crate::stego::{StegoError, embed_data, extract_data, max_message_size};
 
 /// Errors that can be emitted while handling the CLI
 #[derive(Debug, Error)]
@@ -104,11 +100,7 @@ pub enum AppError
 #[command(
     author,
     version,
-    about = "Encode and decode data into images using RGB LSB steganography",
-    after_help = formatcp!(
-        "Maximum supported payload size is {} MiB",
-        MAX_REASONABLE_MSG_SIZE / (1024 * 1024)
-    )
+    about = "Encode and decode data into images using RGB LSB steganography"
 )]
 struct Cli
 {
@@ -363,16 +355,9 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
 fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
 {
     let image = load_image(&args.input)?;
+
     let capacity = max_message_size(&image)?;
     println!("Maximum possible payload size: {} bytes", capacity);
-    if capacity > MAX_REASONABLE_MSG_SIZE
-    {
-        println!(
-            "Warning: payload size will be capped at the maximum supported \
-             size of {} MiB",
-            MAX_REASONABLE_MSG_SIZE / (1024 * 1024)
-        );
-    }
 
     Ok(())
 }
