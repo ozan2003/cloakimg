@@ -4,4 +4,5 @@
 //! images using RGB LSB steganography.
 pub mod cli;
 pub mod crypto;
+pub mod hash;
 pub mod stego;

@@ -21,6 +21,7 @@ A command-line tool for hiding and extracting UTF-8 text/binary data into images
 - **Encode text/binary data into images**: Uses least significant bits of RGB channels.
 - **Decode embedded data**: Recover hidden messages from compatible images.
 - **File or inline input**: Provide data directly or from a file.
+- **Integrity checks**: Verify the integrity of the embedded data using a hash.
 - **Optional encryption**: Store a key/nonce pair in files to encrypt data before embedding.
 - **Safe error handling**: Clear error messages and non-zero exit codes on failure.
 

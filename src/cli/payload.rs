@@ -13,6 +13,7 @@ use super::{AppError, EncodingArgs};
 use crate::crypto::{
     AUTH_TAG_SIZE, ChaCha20Cipher, Cipher, CryptoError, NONCE_SIZE,
 };
+use crate::hash::{DEFAULT_DIGEST_LEN, hash};
 
 /// Resolves the payload to embed from the command line arguments.
 ///
@@ -43,6 +44,66 @@ pub(super) fn resolve_message(
              payload_file is provided"
         ),
     }
+}
+
+/// Appends a hash of the message to the end of the message bytes.
+///
+/// The hash is used for integrity verification during extraction.
+///
+/// The output format is: `[N-byte message][``DEFAULT_DIGEST_LEN``-byte hash]`.
+///
+/// # Arguments
+/// * `message` - The message bytes to which the hash will be appended.
+///
+/// # Returns
+/// A new vector containing the original message followed by its hash digest.
+pub(super) fn append_hash(message: &[u8]) -> Vec<u8>
+{
+    let mut output = Vec::with_capacity(message.len() + DEFAULT_DIGEST_LEN);
+    output.extend_from_slice(message);
+    output.extend_from_slice(&hash(message));
+    output
+}
+
+/// Verifies the integrity of the payload by checking the appended hash and
+/// returns the original message if the hash is valid.
+///
+/// The input format is expected to be: `[N-byte
+/// message][``DEFAULT_DIGEST_LEN``-byte hash]`.
+///
+/// # Arguments
+/// * `payload` - The payload bytes containing the message followed by its hash.
+///
+/// # Errors
+/// * [`AppError::IntegrityPayloadTooShort`] if the payload is shorter than the
+///   expected hash length.
+/// * [`AppError::IntegrityCheckFailed`] if the computed hash does not match the
+///   expected hash.
+///
+/// # Returns
+/// A vector containing the original message bytes if the integrity check
+/// passes.
+pub(super) fn verify_and_strip_hash(payload: &[u8])
+-> Result<Vec<u8>, AppError>
+{
+    if payload.len() < DEFAULT_DIGEST_LEN
+    {
+        return Err(AppError::IntegrityPayloadTooShort {
+            needed_minimum: DEFAULT_DIGEST_LEN,
+            actual: payload.len(),
+        });
+    }
+
+    let (message, expected_hash) =
+        payload.split_at(payload.len() - DEFAULT_DIGEST_LEN);
+
+    let actual_hash = hash(message);
+    if actual_hash.as_slice() != expected_hash
+    {
+        return Err(AppError::IntegrityCheckFailed);
+    }
+
+    Ok(message.to_vec())
 }
 
 /// Tries to encrypt the message using the provided encryption arguments.
@@ -285,6 +346,50 @@ mod tests
         fn boxed_path(&self) -> Box<Path>
         {
             self.path.clone().into_boxed_path()
+        }
+    }
+
+    #[test]
+    fn hash_roundtrip_and_validation()
+    {
+        let message = b"cloakimg message";
+        let payload = append_hash(message);
+        let restored =
+            verify_and_strip_hash(&payload).expect("hash verification failed");
+        assert_eq!(message.as_slice(), restored.as_slice());
+    }
+
+    #[test]
+    fn hash_validation_fails_on_tamper()
+    {
+        let message = b"cloakimg message";
+        let mut payload = append_hash(message);
+        let last = payload.len() - 1;
+        payload[last] ^= 0b0000_0001; // flip a bit
+
+        let err = verify_and_strip_hash(&payload)
+            .expect_err("expected integrity error");
+
+        match err
+        {
+            AppError::IntegrityCheckFailed =>
+            {},
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn hash_validation_fails_on_short_payload()
+    {
+        let payload = vec![0; DEFAULT_DIGEST_LEN - 1];
+        let err = verify_and_strip_hash(&payload)
+            .expect_err("expected integrity error");
+
+        match err
+        {
+            AppError::IntegrityPayloadTooShort { .. } =>
+            {},
+            other => panic!("unexpected error: {other:?}"),
         }
     }
 }

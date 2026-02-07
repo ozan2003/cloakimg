@@ -15,7 +15,8 @@ use thiserror::Error;
 use self::encryption::EncryptionArgs;
 use self::image_io::{load_image, normalized_extension, write_image};
 use self::payload::{
-    resolve_message, try_decrypt_message, try_encrypt_message,
+    append_hash, resolve_message, try_decrypt_message, try_encrypt_message,
+    verify_and_strip_hash,
 };
 use crate::crypto::CryptoError;
 use crate::stego::{StegoError, embed_data, extract_data, max_message_size};
@@ -93,6 +94,21 @@ pub enum AppError
     /// Something went wrong with the crypto operations
     #[error(transparent)]
     Crypto(#[from] CryptoError),
+
+    /// Payload is too short to include the hash footer
+    #[error(
+        "payload too short for integrity check: need at least \
+         {needed_minimum} bytes, got {actual}"
+    )]
+    IntegrityPayloadTooShort
+    {
+        needed_minimum: usize,
+        actual: usize,
+    },
+
+    /// Payload hash does not match
+    #[error("payload integrity check failed")]
+    IntegrityCheckFailed,
 }
 
 /// The main CLI parser
@@ -225,8 +241,12 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
     let mut image = load_image(&args.input)?;
     let payload = {
         let message = resolve_message(args)?;
+        let message = append_hash(&message);
         if let Some(encryption) = args.encryption.as_ref()
         {
+            // Crypto functions need not to be aware of the hash,
+            // they will see both message and hash as plaintext and encrypt them
+            // together.
             try_encrypt_message(&message, encryption)?
         }
         else
@@ -309,14 +329,19 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     // provided.
     let message = {
         let payload = extract_data(&image)?;
-        if let Some(encryption) = args.encryption.as_ref()
+        let payload = if let Some(encryption) = args.encryption.as_ref()
         {
+            // Decryption also need not to be aware of the hash, it will
+            // see both as ciphertext.
             try_decrypt_message(&payload, encryption)?
         }
         else
         {
             payload
-        }
+        };
+        // Hash verification is the last step, from this point the hash is
+        // stripped and only the original message is returned.
+        verify_and_strip_hash(&payload)?
     };
 
     if let Some(path) = args.output_file
