@@ -56,7 +56,7 @@ A command-line tool for hiding and extracting UTF-8 text/binary data into images
 - **Recover a message to the terminal**:
 
 > [!NOTE]
-> `find` utility might help determine the format of the output file.
+> `file` utility might help determine the format of the output file.
 
  ```bash
  cloakimg decode data/tp0n3p08_secret.png
