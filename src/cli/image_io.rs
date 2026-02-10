@@ -2,10 +2,11 @@
 //!
 //! Normalizes extensions, loads RGB buffers, and writes files with the
 //! appropriate encoder.
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{Error, ErrorKind};
 use std::path::Path;
 
+use dialoguer::Confirm;
 use image::codecs::bmp::BmpEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::codecs::pnm::{PnmEncoder, PnmSubtype, SampleEncoding};
@@ -107,6 +108,12 @@ pub(super) fn write_image(
     output: impl AsRef<Path>,
 ) -> Result<(), AppError>
 {
+    if fs::exists(output.as_ref())
+        .expect("Failed to check if output file exists")
+    {
+        handle_overwrite_confirmation(output.as_ref());
+    }
+
     let mut file =
         File::create(output.as_ref()).map_err(|source| AppError::Write {
             path: output.as_ref().into(),
@@ -194,4 +201,34 @@ pub(super) fn write_image(
     }
 
     Ok(())
+}
+
+/// Prompts the user for confirmation if the output file already exists, asking
+/// if they want to overwrite it.
+///
+/// If the user chooses not to overwrite the file, the program will exit with a
+/// status code of 0.
+///
+/// # Arguments
+/// * `output` - The path to the output file that may be overwritten.
+fn handle_overwrite_confirmation(output: impl AsRef<Path>)
+{
+    if fs::exists(output.as_ref())
+        .expect("Failed to check if output file exists")
+    {
+        let should_overwrite = Confirm::new()
+            .with_prompt(format!(
+                "File {} already exists, do you want to overwrite it?",
+                output.as_ref().display()
+            ))
+            .default(false)
+            .wait_for_newline(true)
+            .interact()
+            .expect("Failed to prompt for overwrite confirmation");
+
+        if !should_overwrite
+        {
+            std::process::exit(0);
+        }
+    }
 }
