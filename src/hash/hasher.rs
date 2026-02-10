@@ -1,3 +1,5 @@
+//! Provides a simple wrapper around the hash crate to compute fixed-length
+//! hashes of input data.
 use blake3::Hasher as Blake3Hasher;
 
 /// Default length of the hash digest in bytes.
