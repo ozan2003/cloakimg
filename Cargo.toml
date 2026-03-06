@@ -8,7 +8,7 @@ keywords = ["steganography", "image-processing", "command-line", "encryption"]
 license-file = "LICENSE"
 
 [dependencies]
-clap = { version = "4.5.56", features = ["derive"] }
+clap = { version = "4.5.60", features = ["derive"] }
 image = { version = "0.25.9", default-features = false, features = [
     "png",
     "bmp",
@@ -23,7 +23,7 @@ blake3 = "1.8.3"
 dialoguer = "0.12.0"
 
 [dev-dependencies]
-tempfile = "3.24.0"
+tempfile = "3.26.0"
 rand = { version = "0.9.2", default-features = false, features = [
     "thread_rng",
 ] }
