@@ -1,5 +1,5 @@
 //! Wrapper over the `chacha20poly1305` AEAD.
-use chacha20poly1305::aead::{Aead, AeadCore, KeyInit, OsRng};
+use chacha20poly1305::aead::{Aead as _, AeadCore as _, KeyInit as _, OsRng};
 use chacha20poly1305::{ChaCha20Poly1305, Key, Nonce};
 
 use super::{Cipher, CryptoError};
@@ -18,7 +18,10 @@ pub const AUTH_TAG_SIZE: usize = 16;
 #[derive(Clone)]
 pub struct ChaCha20Cipher
 {
+    /// The underlying cipher instance.
     cipher: ChaCha20Poly1305,
+    /// Nonce used for encryption and decryption. Must be unique for each
+    /// encryption session with the same key.
     nonce: Nonce,
 }
 
@@ -62,7 +65,7 @@ impl Cipher for ChaCha20Cipher
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<u8>)` containing the ciphertext on success
+    /// `Ok(Vec<u8>)` containing the ciphertext on success.
     ///
     /// # Errors
     ///
@@ -83,7 +86,7 @@ impl Cipher for ChaCha20Cipher
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success
+    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success.
     ///
     /// # Errors
     ///

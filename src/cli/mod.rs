@@ -6,7 +6,7 @@ mod image_io;
 mod payload;
 
 use std::fs;
-use std::io::Write;
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use clap::{ArgGroup, Args, Parser, Subcommand};
@@ -21,11 +21,11 @@ use self::payload::{
 use crate::crypto::CryptoError;
 use crate::stego::{StegoError, embed_data, extract_data, max_message_size};
 
-/// Errors that can be emitted while handling the CLI
+/// Errors that can be emitted while handling the CLI.
 #[derive(Debug, Error)]
 pub enum AppError
 {
-    /// Failed to read a file from disk
+    /// Failed to read a file from disk.
     #[error("failed to read {path}: {source}")]
     Read
     {
@@ -34,7 +34,7 @@ pub enum AppError
         source: std::io::Error,
     },
 
-    /// Failed to write a file to disk
+    /// Failed to write a file to disk.
     #[error("failed to write {path}: {source}")]
     Write
     {
@@ -43,7 +43,7 @@ pub enum AppError
         source: std::io::Error,
     },
 
-    /// Failed to decode an input image
+    /// Failed to decode an input image.
     #[error("failed to decode image {path}: {source}")]
     ImageOpen
     {
@@ -52,7 +52,7 @@ pub enum AppError
         source: image::ImageError,
     },
 
-    /// Failed to encode an output image
+    /// Failed to encode an output image.
     #[error("failed to encode image {path} as {target_format}: {source}")]
     ImageEncode
     {
@@ -62,40 +62,40 @@ pub enum AppError
         source: image::ImageError,
     },
 
-    /// A steganography error occurred
+    /// A steganography error occurred.
     #[error(transparent)]
     Stego(#[from] StegoError),
 
-    /// The message is missing
+    /// The message is missing.
     #[error("provide a message")]
     MissingMessage,
 
-    /// The format is unsupported
+    /// The format is unsupported.
     #[error("unsupported image format {extension}")]
     UnsupportedFormat
     {
-        /// Detected extension
+        /// Detected extension.
         extension: Box<str>,
     },
 
-    /// Input and output formats are different
+    /// Input and output formats are different.
     #[error(
         "input and output formats are different, both must be \
          {input_extension}"
     )]
     DifferentFormats
     {
-        /// Extension detected on the input file
+        /// Extension detected on the input file.
         input_extension: Box<str>,
-        /// Extension detected on the output file
+        /// Extension detected on the output file.
         output_extension: Box<str>,
     },
 
-    /// Something went wrong with the crypto operations
+    /// Something went wrong with the crypto operations.
     #[error(transparent)]
     Crypto(#[from] CryptoError),
 
-    /// Payload is too short to include the hash footer
+    /// Payload is too short to include the hash footer.
     #[error(
         "payload too short for integrity check: need at least \
          {needed_minimum} bytes, got {actual}"
@@ -106,12 +106,12 @@ pub enum AppError
         actual: usize,
     },
 
-    /// Payload hash does not match
+    /// Payload hash does not match.
     #[error("payload integrity check failed")]
     IntegrityCheckFailed,
 }
 
-/// The main CLI parser
+/// The main CLI parser.
 #[derive(Parser)]
 #[command(
     author,
@@ -121,15 +121,19 @@ pub enum AppError
 struct Cli
 {
     #[command(subcommand)]
+    /// The main command interface.
     command: Command,
 }
 
-/// The main command
+/// The main command.
 #[derive(Subcommand)]
 enum Command
 {
+    /// Embed data into an image.
     Encode(EncodingArgs),
+    /// Extract data from an image.
     Decode(DecodingArgs),
+    /// Calculate the maximum possible payload size for an image.
     Cap(CapacityArgs),
 }
 
@@ -393,7 +397,7 @@ mod tests
     use std::fmt::{Debug, Formatter, Result};
     use std::path::Path;
 
-    use clap::{CommandFactory, Parser};
+    use clap::{CommandFactory as _, Parser as _};
 
     use super::*;
     use crate::crypto::{AUTH_TAG_SIZE, NONCE_SIZE};

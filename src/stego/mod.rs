@@ -19,7 +19,7 @@ pub use encode::embed_data;
 use image::RgbImage;
 use thiserror::Error;
 
-/// Bit length of the payload length header
+/// Bit length of the payload length header.
 const HEADER_BITS: usize = 30;
 const _: () = const {
     // I couldn't find a way w/o hardcoding the type
@@ -29,14 +29,14 @@ const _: () = const {
     );
 };
 
-/// Maximum value representable by the payload length header in bytes
+/// Maximum value representable by the payload length header in bytes.
 const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
-/// Errors that can be emitted while embedding or extracting text
+/// Errors that can be emitted while embedding or extracting text.
 #[derive(Debug, Error)]
 pub enum StegoError
 {
-    /// The payload is too large to fit in the image
+    /// The payload is too large to fit in the image.
     #[error(
         "payload length of {requested_bytes} bytes exceeds available capacity \
          of {available_bytes} bytes"
@@ -47,7 +47,7 @@ pub enum StegoError
         available_bytes: usize,
     },
 
-    /// The payload length is too large to fit in the header
+    /// The payload length is too large to fit in the header.
     #[error(
         "payload length of {requested_bytes} bytes exceeds {HEADER_BITS}-bit \
          header limit"
@@ -57,7 +57,7 @@ pub enum StegoError
         requested_bytes: usize
     },
 
-    /// The image does not contain enough data to decode the payload header
+    /// The image does not contain enough data to decode the payload header.
     #[error("image does not contain enough data to decode the payload header")]
     MissingHeader
     {
@@ -74,15 +74,15 @@ pub enum StegoError
         available_bytes: usize,
     },
 
-    /// The image data ended before the payload could be fully reconstructed
+    /// The image data ended before the payload could be fully reconstructed.
     #[error("image data ended before the payload could be fully reconstructed")]
     IncompletePayload,
 
-    /// The payload length is too large to fit in a to an int
+    /// The payload length is too large to fit in a to an int.
     #[error(transparent)]
     PayloadLengthParseError(#[from] std::num::TryFromIntError),
 
-    /// The image dimensions overflow the supported channel capacity
+    /// The image dimensions overflow the supported channel capacity.
     #[error(
         "image dimensions of {width}x{height} pixels exceed supported capacity"
     )]
@@ -106,7 +106,7 @@ pub fn max_message_size(image: &RgbImage) -> Result<usize, StegoError>
     Ok((available_bits.saturating_sub(HEADER_BITS)) / 8)
 }
 
-/// Returns the number of bits available in the image for the payload
+/// Returns the number of bits available in the image for the payload.
 ///
 /// # Errors
 ///

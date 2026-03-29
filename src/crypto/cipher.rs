@@ -14,7 +14,7 @@ pub trait Cipher
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<u8>)` containing the ciphertext on success
+    /// `Ok(Vec<u8>)` containing the ciphertext on success.
     ///
     /// # Errors
     ///
@@ -30,7 +30,7 @@ pub trait Cipher
     ///
     /// # Returns
     ///
-    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success
+    /// `Ok(Vec<u8>)` containing the decrypted plaintext on success.
     ///
     /// # Errors
     ///

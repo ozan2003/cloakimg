@@ -14,7 +14,7 @@ use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 ///
 /// # Returns
 ///
-/// `Ok(Vec<u8>)` containing the extracted payload on success
+/// `Ok(Vec<u8>)` containing the extracted payload on success.
 ///
 /// # Errors
 ///

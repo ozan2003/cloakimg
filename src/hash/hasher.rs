@@ -9,6 +9,7 @@ pub const DEFAULT_DIGEST_LEN: usize = 10; // 80 bits
 /// length.
 pub struct Hasher
 {
+    /// The underlying hasher instance.
     inner: Blake3Hasher,
 }
 

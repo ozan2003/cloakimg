@@ -32,7 +32,7 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///
 /// # Returns
 ///
-/// `Ok(())` on success
+/// `Ok(())` on success.
 ///
 /// # Errors
 ///
@@ -98,23 +98,23 @@ pub fn embed_data(
     Ok(())
 }
 
-/// Iterator over the bits of the payload
+/// Iterator over the bits of the payload.
 #[derive(Default)]
 struct PayloadBits<'message>
 {
-    /// The message to embed
+    /// The message to embed.
     message: &'message [u8],
-    /// The index of the next bit in the length
+    /// The index of the next bit in the length.
     header_bit_index: usize,
-    /// The index of the current byte across the message
+    /// The index of the current byte across the message.
     msg_byte_index: usize,
-    /// The index of the current bit in a single byte we're on
+    /// The index of the current bit in a single byte we're on.
     curr_bit_index: u8,
 }
 
 impl<'message> PayloadBits<'message>
 {
-    /// Creates an iterator over the bits of the given message
+    /// Creates an iterator over the bits of the given message.
     ///
     /// # Arguments
     ///
@@ -127,7 +127,7 @@ impl<'message> PayloadBits<'message>
         }
     }
 
-    /// Returns the next bit of the payload, encoding the length first
+    /// Returns the next bit of the payload, encoding the length first.
     ///
     /// # Returns
     ///
@@ -136,7 +136,8 @@ impl<'message> PayloadBits<'message>
     ///
     /// # Notes
     ///
-    /// The length is encoded as a big-endian `HEADER_BITS`-bit unsigned integer
+    /// The length is encoded as a big-endian `HEADER_BITS`-bit unsigned
+    /// integer.
     fn next_bit(&mut self) -> Option<u8>
     {
         // encode the length

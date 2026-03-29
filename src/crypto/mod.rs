@@ -8,55 +8,55 @@ pub use chacha20::{AUTH_TAG_SIZE, ChaCha20Cipher, KEY_SIZE, NONCE_SIZE};
 pub use cipher::Cipher;
 use thiserror::Error;
 
-/// Errors that can be emitted while performing cryptographic operations
+/// Errors that can be emitted while performing cryptographic operations.
 #[derive(Debug, Error)]
 pub enum CryptoError
 {
-    /// A hex string is invalid
+    /// A hex string is invalid.
     #[error("invalid {field} hex string: {source}")]
     InvalidHex
     {
-        /// Name of the offending field
+        /// Name of the offending field.
         field: Box<str>,
-        /// Source hex error
+        /// Source hex error.
         #[source]
         source: hex::FromHexError,
     },
 
-    /// A parsed hex string has the wrong length
+    /// A parsed hex string has the wrong length.
     #[error("{field} must be {expected} bytes but was {actual}")]
     InvalidLength
     {
-        /// Name of the offending field
+        /// Name of the offending field.
         field: Box<str>,
-        /// Expected number of bytes
+        /// Expected number of bytes.
         expected: usize,
-        /// Actual number of bytes
+        /// Actual number of bytes.
         actual: usize,
     },
 
-    /// Encryption was requested without providing all required parameters
+    /// Encryption was requested without providing all required parameters.
     #[error("missing encryption argument: {field}")]
     MissingEncryptionField
     {
-        /// Name of the missing argument
+        /// Name of the missing argument.
         field: Box<str>,
     },
 
-    /// Reading key/nonce material from disk failed
+    /// Reading key/nonce material from disk failed.
     #[error("failed to read {field} file at {path}: {source}")]
     KeyMaterialIo
     {
-        /// Name of the offending field
+        /// Name of the offending field.
         field: Box<str>,
-        /// Path to the file that could not be read
+        /// Path to the file that could not be read.
         path: Box<Path>,
-        /// Source I/O error
+        /// Source I/O error.
         #[source]
         source: std::io::Error,
     },
 
-    /// The encrypted payload is shorter than the required nonce + tag length
+    /// The encrypted payload is shorter than the required nonce + tag length.
     #[error(
         "payload too short: need at least {needed_minimum} bytes, got {actual}"
     )]
@@ -66,15 +66,15 @@ pub enum CryptoError
         actual: usize,
     },
 
-    /// Nonce extraction from the payload failed
+    /// Nonce extraction from the payload failed.
     #[error("couldn't extract nonce from payload")]
     NonceExtractionFailed,
 
-    /// AEAD encryption failed
+    /// AEAD encryption failed.
     #[error("authenticated encryption failed")]
     AeadEncryptFailed,
 
-    /// AEAD decryption failed
+    /// AEAD decryption failed.
     #[error("authenticated decryption failed")]
     AeadDecryptFailed,
 }

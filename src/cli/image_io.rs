@@ -11,7 +11,7 @@ use image::codecs::bmp::BmpEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::codecs::pnm::{PnmEncoder, PnmSubtype, SampleEncoding};
 use image::codecs::tiff::TiffEncoder;
-use image::{DynamicImage, ExtendedColorType, ImageEncoder, RgbImage};
+use image::{DynamicImage, ExtendedColorType, ImageEncoder as _, RgbImage};
 
 use super::AppError;
 

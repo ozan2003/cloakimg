@@ -53,6 +53,7 @@ impl EncryptionArgs
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub(super) struct EncryptionContext
 {
+    /// The encryption key.
     pub(super) key: [u8; KEY_SIZE],
 }
 
@@ -154,7 +155,7 @@ fn parse_crypto_file<const N: usize>(
     {
         let looks_textual = ascii
             .chars()
-            .all(|c| c.is_ascii_graphic() || c.is_ascii_whitespace());
+            .all(|ch| ch.is_ascii_graphic() || ch.is_ascii_whitespace());
 
         let hex: String = ascii.split_whitespace().collect();
         if looks_textual && !hex.is_empty()
