@@ -235,3 +235,71 @@ impl Iterator for PayloadBits<'_>
 impl std::iter::FusedIterator for PayloadBits<'_>
 {
 }
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    fn bits(num: u8) -> Vec<u8>
+    {
+        (0..u8::BITS)
+            .rev()
+            .map(|i| (num >> i) & 1)
+            .collect()
+    }
+
+    /// Pins the exact bit layout of [`PayloadBits`] so a symmetric bug in
+    /// both embed and decode (e.g. reversed bit order) cannot slip through
+    /// the round-trip tests.
+    #[test]
+    fn payload_bits_golden_sequence()
+    {
+        let payload = [0xAA, 0x01];
+        let stream: Vec<u8> = PayloadBits::new(&payload).collect();
+
+        let mut expected = Vec::with_capacity(HEADER_BITS + 16);
+        // payload length as a 30-bit big-endian integer
+        expected.extend(
+            (0..HEADER_BITS)
+                .rev()
+                .map(|i| u8::from(((payload.len() >> i) & 1) != 0)),
+        );
+        // message bytes, MSB first
+        for byte in payload
+        {
+            expected.extend(bits(byte));
+        }
+
+        assert_eq!(stream, expected);
+    }
+
+    #[test]
+    fn payload_bits_empty_message()
+    {
+        let bits: Vec<u8> = PayloadBits::new(b"").collect();
+        assert_eq!(bits.len(), HEADER_BITS);
+        assert!(bits.iter().all(|bit| *bit == 0));
+    }
+
+    #[test]
+    fn payload_bits_size_hint_is_exact_and_fused()
+    {
+        let payload = b"size hint payload";
+        let total = HEADER_BITS + payload.len() * 8;
+
+        let mut bits = PayloadBits::new(payload);
+        for emitted in 0..total
+        {
+            assert_eq!(
+                bits.size_hint(),
+                (total - emitted, Some(total - emitted))
+            );
+            assert!(matches!(bits.next(), Some(0 | 1)));
+        }
+        assert_eq!(bits.size_hint(), (0, Some(0)));
+        // Fused: consecutive calls after exhaustion stay `None`.
+        assert_eq!(bits.next(), None);
+        assert_eq!(bits.next(), None);
+    }
+}
