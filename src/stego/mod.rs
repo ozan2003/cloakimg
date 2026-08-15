@@ -147,7 +147,6 @@ mod tests
     use std::path::Path;
 
     use image::Rgb;
-    use rand::fill;
 
     use super::*;
 
@@ -211,7 +210,7 @@ mod tests
         const HEIGHT: u32 = 64;
 
         let mut rng_data = vec![0; WIDTH as usize * HEIGHT as usize * 3];
-        fill(rng_data.as_mut_slice());
+        urandom::new().fill(rng_data.as_mut_slice());
 
         let mut image = RgbImage::from_raw(WIDTH, HEIGHT, rng_data)
             .expect("failed to create image from raw data");
