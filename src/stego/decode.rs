@@ -5,7 +5,7 @@ use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 
-/// Extracts the raw payload previously embedded with [`embed_text`] from the
+/// Extracts the raw payload previously embedded with [`embed_data`] from the
 /// provided image.
 ///
 /// # Arguments
@@ -32,7 +32,7 @@ use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 ///
 /// ```
 /// use image::RgbImage;
-/// use stego::stego::{embed_data, extract_data, StegoError};
+/// use cloakimg::stego::{embed_data, extract_data, StegoError};
 ///
 /// let mut img = RgbImage::new(100, 100);
 /// let payload = b"Hidden message";
@@ -43,6 +43,10 @@ use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 ///
 /// assert_eq!(extracted, payload);
 /// ```
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "capacity math guarded by the earlier MissingHeader check"
+)]
 pub fn extract_data(image: &RgbImage) -> Result<Vec<u8>, StegoError>
 {
     let available_bits = channel_capacity_bits(image)?;

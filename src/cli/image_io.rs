@@ -16,17 +16,6 @@ use image::{DynamicImage, ExtendedColorType, ImageEncoder as _, RgbImage};
 use super::AppError;
 
 /// Normalizes the extension of a path to lowercase.
-///
-/// # Example
-///
-/// ```
-/// use std::path::Path;
-/// use crate::cli::image_io::normalized_extension;
-///
-/// let ext = normalized_extension(Path::new("image.PNG"));
-///
-/// assert_eq!(ext, Some("png".into()));
-/// ```
 pub(super) fn normalized_extension(path: impl AsRef<Path>) -> Option<String>
 {
     path.as_ref()
@@ -47,7 +36,6 @@ pub(super) fn normalized_extension(path: impl AsRef<Path>) -> Option<String>
 ///
 /// # Errors
 ///
-/// # Returns
 /// * [`AppError::Read`] when the path is a directory
 /// * [`AppError::ImageOpen`] when the image cannot be loaded
 pub(super) fn load_image(path: impl AsRef<Path>) -> Result<RgbImage, AppError>
@@ -90,26 +78,16 @@ pub(super) fn load_image(path: impl AsRef<Path>) -> Result<RgbImage, AppError>
 /// * bmp
 /// * tiff / tif
 /// * ppm
-///
-/// # Example
-///
-/// ```
-/// use std::path::Path;
-/// use image::RgbImage;
-/// use crate::cli::image_io::write_image;
-///
-/// let image = RgbImage::new(100, 100);
-/// write_image(&image, Some("png"), Path::new("output.png"))
-///     .expect("Failed to write image");
-/// ```
 pub(super) fn write_image(
     image: &RgbImage,
     extension: Option<&str>,
     output: impl AsRef<Path>,
 ) -> Result<(), AppError>
 {
-    if fs::exists(output.as_ref())
-        .expect("Failed to check if output file exists")
+    if fs::exists(output.as_ref()).map_err(|source| AppError::Access {
+        path: output.as_ref().into(),
+        source,
+    })?
     {
         handle_overwrite_confirmation(output.as_ref());
     }
@@ -213,22 +191,18 @@ pub(super) fn write_image(
 /// * `output` - The path to the output file that may be overwritten.
 fn handle_overwrite_confirmation(output: impl AsRef<Path>)
 {
-    if fs::exists(output.as_ref())
-        .expect("Failed to check if output file exists")
-    {
-        let should_overwrite = Confirm::new()
-            .with_prompt(format!(
-                "File {} already exists, do you want to overwrite it?",
-                output.as_ref().display()
-            ))
-            .default(false)
-            .wait_for_newline(true)
-            .interact()
-            .expect("Failed to prompt for overwrite confirmation");
+    let should_overwrite = Confirm::new()
+        .with_prompt(format!(
+            "File {} already exists, do you want to overwrite it?",
+            output.as_ref().display()
+        ))
+        .default(false)
+        .wait_for_newline(true)
+        .interact()
+        .expect("Failed to prompt for overwrite confirmation");
 
-        if !should_overwrite
-        {
-            std::process::exit(0);
-        }
+    if !should_overwrite
+    {
+        std::process::exit(0);
     }
 }

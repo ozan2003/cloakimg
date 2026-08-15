@@ -11,7 +11,11 @@ use std::fs;
 use super::encryption::EncryptionArgs;
 use super::{AppError, EncodingArgs};
 use crate::crypto::{
-    AUTH_TAG_SIZE, ChaCha20Cipher, Cipher, CryptoError, NONCE_SIZE,
+    AUTH_TAG_SIZE,
+    ChaCha20Cipher,
+    Cipher,
+    CryptoError,
+    NONCE_SIZE,
 };
 use crate::hash::{DEFAULT_DIGEST_LEN, hash};
 
@@ -23,7 +27,6 @@ use crate::hash::{DEFAULT_DIGEST_LEN, hash};
 ///
 /// # Errors
 ///
-/// # Returns
 /// * [`AppError::Read`] when the payload file cannot be read
 pub(super) fn resolve_message(
     args: &mut EncodingArgs,
@@ -31,7 +34,9 @@ pub(super) fn resolve_message(
 {
     match (args.text.take(), &args.payload_file)
     {
-        (Some(text), None) => Ok(text.into_bytes()),
+        // clap's ArgGroup guarantees at least one source, so the `(None, None)`
+        // arm is defensive only.
+        (Some(text), _) => Ok(text.into_bytes()),
         (None, Some(path)) =>
         {
             fs::read(path.as_ref()).map_err(|source| AppError::Read {
@@ -39,10 +44,7 @@ pub(super) fn resolve_message(
                 source,
             })
         },
-        _ => unreachable!(
-            "mutually exclusive group should ensure that either text or \
-             payload_file is provided"
-        ),
+        (None, None) => Err(AppError::MissingMessage),
     }
 }
 
@@ -57,6 +59,10 @@ pub(super) fn resolve_message(
 ///
 /// # Returns
 /// A new vector containing the original message followed by its hash digest.
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "capacity math on in-memory buffers cannot overflow"
+)]
 pub(super) fn append_hash(message: &[u8]) -> Vec<u8>
 {
     let mut output = Vec::with_capacity(message.len() + DEFAULT_DIGEST_LEN);
@@ -83,6 +89,10 @@ pub(super) fn append_hash(message: &[u8]) -> Vec<u8>
 /// # Returns
 /// A vector containing the original message bytes if the integrity check
 /// passes.
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "splitting an in-memory payload cannot overflow"
+)]
 pub(super) fn verify_and_strip_hash(payload: &[u8])
 -> Result<Vec<u8>, AppError>
 {
@@ -123,7 +133,11 @@ pub(super) fn verify_and_strip_hash(payload: &[u8])
 /// # Errors
 ///
 /// Returns:
-/// * [`CryptoError::EncryptionFailed`] when encrypting the message fails
+/// * [`CryptoError::AeadEncryptFailed`] when encrypting the message fails
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "sizing an in-memory output buffer cannot overflow"
+)]
 pub(super) fn try_encrypt_message(
     message: &[u8],
     encryption: &EncryptionArgs,
@@ -160,7 +174,7 @@ pub(super) fn try_encrypt_message(
 ///
 /// Returns:
 /// * [`CryptoError::NonceExtractionFailed`] when the nonce cannot be extracted
-/// * [`CryptoError::DecryptionFailed`] when decrypting the message fails
+/// * [`CryptoError::AeadDecryptFailed`] when decrypting the message fails
 pub(super) fn try_decrypt_message(
     payload: &[u8],
     encryption: &EncryptionArgs,
@@ -203,7 +217,7 @@ pub(super) fn try_decrypt_message(
 /// # Errors
 ///
 /// Returns:
-/// * [`CryptoError::EncryptionFailed`] when encrypting the message fails
+/// * [`CryptoError::AeadEncryptFailed`] when encrypting the message fails
 fn encrypt_with_cipher<C: Cipher>(
     message: &[u8],
     cipher: &mut C,
@@ -229,7 +243,7 @@ fn encrypt_with_cipher<C: Cipher>(
 /// # Errors
 ///
 /// Returns:
-/// * [`CryptoError::DecryptionFailed`] when decrypting the message fails
+/// * [`CryptoError::AeadDecryptFailed`] when decrypting the message fails
 fn decrypt_with_cipher<C: Cipher>(
     ciphertext: &[u8],
     cipher: &mut C,
@@ -239,6 +253,7 @@ fn decrypt_with_cipher<C: Cipher>(
 }
 
 #[cfg(test)]
+#[expect(clippy::panic, reason = "test code isn't production code")]
 mod tests
 {
     use std::path::{Path, PathBuf};
@@ -364,8 +379,10 @@ mod tests
     {
         let message = b"cloakimg message";
         let mut payload = append_hash(message);
-        let last = payload.len() - 1;
-        payload[last] ^= 0b0000_0001; // flip a bit
+        if let Some(last_byte) = payload.last_mut()
+        {
+            *last_byte ^= 0b0000_0001; // flip a bit
+        }
 
         let err = verify_and_strip_hash(&payload)
             .expect_err("expected integrity error");

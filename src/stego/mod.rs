@@ -141,8 +141,11 @@ fn capacity_bits_for_dimensions(
 }
 
 #[cfg(test)]
+#[expect(clippy::panic, reason = "test code isn't production code")]
 mod tests
 {
+    use std::path::Path;
+
     use image::Rgb;
     use rand::fill;
 
@@ -164,13 +167,20 @@ mod tests
         "data/sample_640x426.ppm",
     ];
 
-    fn load_fixture_rgb(path: &str) -> RgbImage
+    fn load_fixture_rgb(path: &str) -> Option<RgbImage>
     {
-        image::open(path)
-            .unwrap_or_else(|err| {
-                panic!("failed to open fixture {path}: {err}")
-            })
-            .into_rgb8()
+        // `data/` is gitignored, so fixtures may be absent on a fresh clone.
+        if !Path::new(path).exists()
+        {
+            return None;
+        }
+        Some(
+            image::open(path)
+                .unwrap_or_else(|err| {
+                    panic!("failed to open fixture {path}: {err}")
+                })
+                .into_rgb8(),
+        )
     }
 
     #[test]
@@ -272,7 +282,14 @@ mod tests
     {
         for path in ROUND_TRIP_FIXTURES
         {
-            let mut rgb_image = load_fixture_rgb(path);
+            let Some(mut rgb_image) = load_fixture_rgb(path)
+            else
+            {
+                eprintln!(
+                    "fixture missing: {path} (data/ is gitignored) - skipped"
+                );
+                continue;
+            };
             let message = format!("Round trip validation for {path}");
 
             let capacity = max_message_size(&rgb_image)
@@ -303,7 +320,14 @@ mod tests
     {
         for path in OVERSIZE_FIXTURES
         {
-            let mut rgb_image = load_fixture_rgb(path);
+            let Some(mut rgb_image) = load_fixture_rgb(path)
+            else
+            {
+                eprintln!(
+                    "fixture missing: {path} (data/ is gitignored) - skipped"
+                );
+                continue;
+            };
             let capacity = max_message_size(&rgb_image)
                 .expect("failed to compute capacity");
             let oversized_len = capacity

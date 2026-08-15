@@ -43,7 +43,7 @@ pub enum CryptoError
         field: Box<str>,
     },
 
-    /// Reading key/nonce material from disk failed.
+    /// Reading key material from disk failed.
     #[error("failed to read {field} file at {path}: {source}")]
     KeyMaterialIo
     {

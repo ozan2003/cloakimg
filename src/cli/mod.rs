@@ -15,7 +15,10 @@ use thiserror::Error;
 use self::encryption::EncryptionArgs;
 use self::image_io::{load_image, normalized_extension, write_image};
 use self::payload::{
-    append_hash, resolve_message, try_decrypt_message, try_encrypt_message,
+    append_hash,
+    resolve_message,
+    try_decrypt_message,
+    try_encrypt_message,
     verify_and_strip_hash,
 };
 use crate::crypto::CryptoError;
@@ -37,6 +40,15 @@ pub enum AppError
     /// Failed to write a file to disk.
     #[error("failed to write {path}: {source}")]
     Write
+    {
+        path: Box<Path>,
+        #[source]
+        source: std::io::Error,
+    },
+
+    /// Failed to probe the filesystem for a path.
+    #[error("failed to access {path}: {source}")]
+    Access
     {
         path: Box<Path>,
         #[source]
@@ -217,7 +229,6 @@ pub fn run() -> Result<(), AppError>
 ///
 /// # Errors
 ///
-/// # Returns
 /// * [`AppError::DifferentFormats`] when the input and output formats are
 ///   different.
 fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
@@ -277,25 +288,6 @@ fn handle_encode(args: &mut EncodingArgs) -> Result<(), AppError>
 /// # Returns
 ///
 /// The copy of the resolved path if provided, otherwise the default path.
-///
-/// # Example
-///
-/// ```
-/// use std::path::{Path, PathBuf};
-/// use crate::cli::resolve_output_path;
-///
-/// let args = EncodingArgs {
-///     input: Path::new("input.png").into(),
-///     output_file: None,
-///     text: Some("secret".into()),
-///     payload_file: None,
-///     encryption: None,
-/// };
-///
-/// let output_path = resolve_output_path(&args, Some("png"));
-///
-/// assert_eq!(output_path, PathBuf::from("a.png"));
-/// ```
 fn resolve_output_path(args: &EncodingArgs, input_ext: Option<&str>)
 -> PathBuf
 {
@@ -360,6 +352,10 @@ fn handle_decode(args: DecodingArgs) -> Result<(), AppError>
     else
     {
         // Write the message to stdout if no file path is provided.
+        #[expect(
+            clippy::unwrap_in_result,
+            reason = "the program only covers file operation errors"
+        )]
         std::io::stdout()
             .write_all(&message)
             .expect("failed to write message to stdout");
@@ -392,6 +388,7 @@ fn handle_capacity(args: &CapacityArgs) -> Result<(), AppError>
 }
 
 #[cfg(test)]
+#[expect(clippy::panic, reason = "test code isn't production code")]
 mod tests
 {
     use std::fmt::{Debug, Formatter, Result};
@@ -750,8 +747,12 @@ mod tests
             .expect("encryption should succeed");
 
         // Extract nonces (first 12 bytes)
-        let nonce1 = &encrypted1[..NONCE_SIZE];
-        let nonce2 = &encrypted2[..NONCE_SIZE];
+        let nonce1 = encrypted1
+            .get(..NONCE_SIZE)
+            .expect("encrypted payload should include nonce");
+        let nonce2 = encrypted2
+            .get(..NONCE_SIZE)
+            .expect("encrypted payload should include nonce");
 
         // Nonces should be different even with same message and key
         assert_ne!(

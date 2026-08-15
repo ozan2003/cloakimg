@@ -46,13 +46,17 @@ use super::{HEADER_BITS, PAYLOAD_MAX_LEN, StegoError, channel_capacity_bits};
 ///
 /// ```
 /// use image::RgbImage;
-/// use stego::stego::{embed_data, StegoError};
+/// use cloakimg::stego::{embed_data, StegoError};
 ///
 /// let mut img = RgbImage::new(100, 100);
 /// let payload = b"Hidden message";
 ///
 /// embed_data(&mut img, payload).expect("Failed to embed data");
 /// ```
+#[expect(
+    clippy::arithmetic_side_effects,
+    reason = "capacity math bounded by the earlier header/capacity checks"
+)]
 pub fn embed_data(
     image: &mut RgbImage,
     payload: &[u8],
@@ -138,6 +142,10 @@ impl<'message> PayloadBits<'message>
     ///
     /// The length is encoded as a big-endian `HEADER_BITS`-bit unsigned
     /// integer.
+    #[expect(
+        clippy::arithmetic_side_effects,
+        reason = "bit indexes are bounded by HEADER_BITS and u8::BITS"
+    )]
     fn next_bit(&mut self) -> Option<u8>
     {
         // encode the length
@@ -146,7 +154,7 @@ impl<'message> PayloadBits<'message>
             // lsb's index is 0
             let shift = (HEADER_BITS - 1) - self.header_bit_index;
 
-            #[allow(
+            #[expect(
                 clippy::cast_possible_truncation,
                 reason = "As we need only a single bit, we can shave off the \
                           excess zero bits"
@@ -162,10 +170,10 @@ impl<'message> PayloadBits<'message>
             return None;
         }
 
-        let byte = self.message[self.msg_byte_index];
+        let byte = *self.message.get(self.msg_byte_index)?;
 
         // lsb's index is 0
-        #[allow(
+        #[expect(
             clippy::cast_possible_truncation,
             reason = "All integer bit lengths are less than u8::MAX"
         )]
@@ -173,7 +181,7 @@ impl<'message> PayloadBits<'message>
         let bit = (byte >> shift_value) & 1;
 
         self.curr_bit_index += 1;
-        #[allow(
+        #[expect(
             clippy::cast_possible_truncation,
             reason = "All integer bit lengths are less than u8::MAX"
         )]

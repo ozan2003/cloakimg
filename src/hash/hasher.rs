@@ -68,7 +68,7 @@ impl Default for Hasher
 /// * `input` - A slice of bytes containing the data to be hashed.
 ///
 /// # Returns
-/// A array of bytes containing the computed hash digest of the input data.
+/// An array of bytes containing the computed hash digest of the input data.
 #[must_use]
 pub fn hash(input: &[u8]) -> [u8; DEFAULT_DIGEST_LEN]
 {

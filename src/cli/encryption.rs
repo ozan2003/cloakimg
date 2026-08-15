@@ -1,7 +1,7 @@
 //! CLI encryption plumbing.
 //!
 //! Defines the shared encryption flag group plus helpers that load and validate
-//! key/nonce material.
+//! key material.
 use std::path::Path;
 
 use clap::Args;
@@ -90,7 +90,7 @@ fn parse_hex_array<const N: usize>(
     hex_value: &str,
 ) -> Result<[u8; N], CryptoError>
 {
-    let bytes =
+    let mut bytes =
         hex::decode(hex_value).map_err(|source| CryptoError::InvalidHex {
             field: field.into(),
             source,
@@ -98,21 +98,24 @@ fn parse_hex_array<const N: usize>(
 
     if bytes.len() != N
     {
+        let actual = bytes.len();
+        bytes.zeroize();
         return Err(CryptoError::InvalidLength {
             field: field.into(),
             expected: N,
-            actual: bytes.len(),
+            actual,
         });
     }
 
     let mut array = [0; N];
     array.copy_from_slice(&bytes);
+    bytes.zeroize();
     Ok(array)
 }
 
 /// Parses a crypto file into a byte array.
 ///
-/// A crypto file is either a key or a nonce file.
+/// A crypto file is a key file.
 ///
 /// # Arguments
 ///
@@ -134,7 +137,7 @@ fn parse_crypto_file<const N: usize>(
     path: impl AsRef<Path>,
 ) -> Result<[u8; N], CryptoError>
 {
-    let bytes = std::fs::read(path.as_ref()).map_err(|source| {
+    let mut bytes = std::fs::read(path.as_ref()).map_err(|source| {
         CryptoError::KeyMaterialIo {
             field: field.into(),
             path: path.as_ref().into(),
@@ -142,11 +145,12 @@ fn parse_crypto_file<const N: usize>(
         }
     })?;
 
-    // Treat the bytes as binaty first.
+    // Treat the bytes as binary first.
     if bytes.len() == N
     {
         let mut array = [0; N];
         array.copy_from_slice(&bytes);
+        bytes.zeroize();
         return Ok(array);
     }
 
@@ -157,17 +161,26 @@ fn parse_crypto_file<const N: usize>(
             .chars()
             .all(|ch| ch.is_ascii_graphic() || ch.is_ascii_whitespace());
 
-        let hex: String = ascii.split_whitespace().collect();
-        if looks_textual && !hex.is_empty()
+        if looks_textual
         {
-            return parse_hex_array(field, &hex);
+            let mut hex: String = ascii.split_whitespace().collect();
+            if !hex.is_empty()
+            {
+                let result = parse_hex_array(field, &hex);
+                hex.zeroize();
+                bytes.zeroize();
+                return result;
+            }
         }
     }
 
+    // Capture the length before `zeroize()`: it clears the buffer.
+    let actual = bytes.len();
+    bytes.zeroize();
     Err(CryptoError::InvalidLength {
         field: field.into(),
         expected: N,
-        actual: bytes.len(),
+        actual,
     })
 }
 
