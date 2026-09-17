@@ -231,7 +231,7 @@ mod tests
 
         assert!(matches!(
             error,
-            CryptoError::InvalidHex { field, source: _ }
+            CryptoError::InvalidHex { field, .. }
                 if field.as_ref() == "--key-file"
         ));
     }

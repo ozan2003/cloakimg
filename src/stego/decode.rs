@@ -5,8 +5,8 @@ use image::{Pixel, RgbImage};
 
 use super::{HEADER_BITS, StegoError, channel_capacity_bits};
 
-/// Extracts the raw payload previously embedded with [`embed_data`] from the
-/// provided image.
+/// Extracts the raw payload previously embedded with
+/// [`embed_data`](crate::stego::embed_data) from the provided image.
 ///
 /// # Arguments
 ///

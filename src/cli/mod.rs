@@ -32,7 +32,9 @@ pub enum AppError
     #[error("failed to read {path}: {source}")]
     Read
     {
+        /// Path to the file that could not be read.
         path: Box<Path>,
+        /// Source I/O error.
         #[source]
         source: std::io::Error,
     },
@@ -41,7 +43,9 @@ pub enum AppError
     #[error("failed to write {path}: {source}")]
     Write
     {
+        /// Path to the file that could not be written.
         path: Box<Path>,
+        /// Source I/O error.
         #[source]
         source: std::io::Error,
     },
@@ -50,7 +54,9 @@ pub enum AppError
     #[error("failed to access {path}: {source}")]
     Access
     {
+        /// Path that could not be accessed.
         path: Box<Path>,
+        /// Source I/O error.
         #[source]
         source: std::io::Error,
     },
@@ -59,7 +65,9 @@ pub enum AppError
     #[error("failed to decode image {path}: {source}")]
     ImageOpen
     {
+        /// Path to the image that could not be decoded.
         path: Box<Path>,
+        /// Source image error.
         #[source]
         source: image::ImageError,
     },
@@ -68,8 +76,11 @@ pub enum AppError
     #[error("failed to encode image {path} as {target_format}: {source}")]
     ImageEncode
     {
+        /// Path to the image that could not be encoded.
         path: Box<Path>,
+        /// Format of the output image.
         target_format: Box<str>,
+        /// Source image error.
         #[source]
         source: image::ImageError,
     },
@@ -114,7 +125,9 @@ pub enum AppError
     )]
     IntegrityPayloadTooShort
     {
+        /// Minimum number of bytes that the payload must contain.
         needed_minimum: usize,
+        /// Actual number of bytes in the payload.
         actual: usize,
     },
 
@@ -394,7 +407,7 @@ mod tests
     use std::fmt::{Debug, Formatter, Result};
     use std::path::Path;
 
-    use clap::{CommandFactory as _, Parser as _};
+    use clap::CommandFactory as _;
 
     use super::*;
     use crate::crypto::{AUTH_TAG_SIZE, NONCE_SIZE};
@@ -535,7 +548,10 @@ mod tests
                 assert!(args.payload_file.is_none());
                 assert!(args.encryption.is_none());
             },
-            other => panic!("expected encode command, got {other:?}"),
+            other @ (Command::Decode(_) | Command::Cap(_)) =>
+            {
+                panic!("expected encode command, got {other:?}");
+            },
         }
     }
 
@@ -582,7 +598,10 @@ mod tests
                     Some(Path::new("message.txt"))
                 );
             },
-            other => panic!("expected encode command, got {other:?}"),
+            other @ (Command::Decode(_) | Command::Cap(_)) =>
+            {
+                panic!("expected encode command, got {other:?}");
+            },
         }
     }
 
@@ -615,7 +634,10 @@ mod tests
                     Some(Path::new("key.bin"))
                 );
             },
-            other => panic!("expected encode command, got {other:?}"),
+            other @ (Command::Decode(_) | Command::Cap(_)) =>
+            {
+                panic!("expected encode command, got {other:?}");
+            },
         }
     }
 
@@ -784,7 +806,10 @@ mod tests
                 );
                 assert!(args.encryption.is_none());
             },
-            other => panic!("expected decode command, got {other:?}"),
+            other @ (Command::Encode(_) | Command::Cap(_)) =>
+            {
+                panic!("expected decode command, got {other:?}");
+            },
         }
     }
 
@@ -813,7 +838,10 @@ mod tests
                     Some(Path::new("key.bin"))
                 );
             },
-            other => panic!("expected decode command, got {other:?}"),
+            other @ (Command::Encode(_) | Command::Cap(_)) =>
+            {
+                panic!("expected decode command, got {other:?}");
+            },
         }
     }
 
@@ -829,7 +857,10 @@ mod tests
             {
                 assert_eq!(args.input.as_ref(), Path::new("image.png"));
             },
-            other => panic!("expected capacity command, got {other:?}"),
+            other @ (Command::Encode(_) | Command::Decode(_)) =>
+            {
+                panic!("expected capacity command, got {other:?}");
+            },
         }
     }
 }

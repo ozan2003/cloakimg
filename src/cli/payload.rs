@@ -253,7 +253,6 @@ fn decrypt_with_cipher<C: Cipher>(
 }
 
 #[cfg(test)]
-#[expect(clippy::panic, reason = "test code isn't production code")]
 mod tests
 {
     use std::path::{Path, PathBuf};
@@ -293,14 +292,14 @@ mod tests
         let plaintext = b"No crypto involved.";
 
         let mut payload = plaintext.to_vec();
-        if let Some(ref encryption) = encryption
+        if let Some(encryption) = &encryption
         {
             payload = try_encrypt_message(&payload, encryption)
                 .expect("encrypt failed");
         }
         assert_eq!(plaintext.as_slice(), payload.as_slice());
 
-        if let Some(ref encryption) = encryption
+        if let Some(encryption) = &encryption
         {
             payload = try_decrypt_message(&payload, encryption)
                 .expect("decrypt failed");
@@ -387,12 +386,10 @@ mod tests
         let err = verify_and_strip_hash(&payload)
             .expect_err("expected integrity error");
 
-        match err
-        {
-            AppError::IntegrityCheckFailed =>
-            {},
-            other => panic!("unexpected error: {other:?}"),
-        }
+        assert!(
+            matches!(err, AppError::IntegrityCheckFailed),
+            "unexpected error: {err:?}"
+        );
     }
 
     #[test]
@@ -402,11 +399,9 @@ mod tests
         let err = verify_and_strip_hash(&payload)
             .expect_err("expected integrity error");
 
-        match err
-        {
-            AppError::IntegrityPayloadTooShort { .. } =>
-            {},
-            other => panic!("unexpected error: {other:?}"),
-        }
+        assert!(
+            matches!(err, AppError::IntegrityPayloadTooShort { .. }),
+            "unexpected error: {err:?}"
+        );
     }
 }

@@ -33,7 +33,7 @@ const _: () = const {
 const PAYLOAD_MAX_LEN: usize = (1 << HEADER_BITS) - 1;
 
 /// Errors that can be emitted while embedding or extracting text.
-#[derive(Debug, Error)]
+#[derive(Clone, Copy, Debug, Error)]
 pub enum StegoError
 {
     /// The payload is too large to fit in the image.
@@ -43,7 +43,9 @@ pub enum StegoError
     )]
     MessageTooLarge
     {
+        /// Number of bytes in the payload.
         requested_bytes: usize,
+        /// Number of bytes that the image can carry.
         available_bytes: usize,
     },
 
@@ -54,23 +56,28 @@ pub enum StegoError
     )]
     MessageExceedsHeaderLimit
     {
-        requested_bytes: usize
+        /// Number of bytes in the payload.
+        requested_bytes: usize,
     },
 
     /// The image does not contain enough data to decode the payload header.
     #[error("image does not contain enough data to decode the payload header")]
     MissingHeader
     {
-        available_bits: usize
+        /// Number of bits that the image provides.
+        available_bits: usize,
     },
 
+    /// The payload length in the header exceeds the image capacity.
     #[error(
         "declared payload of {declared_bytes} bytes exceeds available \
          capacity of {available_bytes} bytes"
     )]
     DeclaredPayloadExceedsCapacity
     {
+        /// Payload length that the header declares.
         declared_bytes: usize,
+        /// Number of bytes that the image can carry.
         available_bytes: usize,
     },
 
@@ -88,7 +95,10 @@ pub enum StegoError
     )]
     ImageCapacityOverflow
     {
-        width: u32, height: u32
+        /// Image width in pixels.
+        width: u32,
+        /// Image height in pixels.
+        height: u32,
     },
 }
 
@@ -353,7 +363,17 @@ mod tests
                         "unexpected available bytes for {path}"
                     );
                 },
-                other => panic!("unexpected error for {path}: {other:?}"),
+                other @ (StegoError::MessageExceedsHeaderLimit { .. } |
+                StegoError::MissingHeader { .. } |
+                StegoError::DeclaredPayloadExceedsCapacity {
+                    ..
+                } |
+                StegoError::IncompletePayload |
+                StegoError::PayloadLengthParseError(_) |
+                StegoError::ImageCapacityOverflow { .. }) =>
+                {
+                    panic!("unexpected error for {path}: {other:?}");
+                },
             }
         }
     }

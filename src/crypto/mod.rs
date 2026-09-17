@@ -62,7 +62,9 @@ pub enum CryptoError
     )]
     PayloadTooShort
     {
+        /// Minimum number of bytes that the payload must contain.
         needed_minimum: usize,
+        /// Actual number of bytes in the payload.
         actual: usize,
     },
 

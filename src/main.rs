@@ -1,3 +1,5 @@
+//! Command line entry point for the `cloakimg` tool.
+
 use cloakimg::cli;
 
 fn main()
